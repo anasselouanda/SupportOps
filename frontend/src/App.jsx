@@ -1,22 +1,38 @@
-import { useEffect, useState } from "react";
-import http from "./api/http";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthProvider";
+import { useAuth } from "./auth/useAuth";
+import GuestRoute from "./routes/GuestRoute";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import DashboardPage from "./pages/DashboardPage";
+
+function LandingRedirect() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="auth-route-loading" role="status">Vérification de votre session…</div>;
+  }
+
+  return <Navigate to={user ? "/dashboard" : "/login"} replace />;
+}
 
 function App() {
-  const [apiStatus, setApiStatus] = useState("Vérification de l’API...");
-
-  useEffect(() => {
-    http
-      .get("/api/health")
-      .then(({ data }) => setApiStatus(data.message))
-      .catch(() => setApiStatus("API Laravel indisponible"));
-  }, []);
-
   return (
-    <main>
-      <h1>SupportOps</h1>
-      <p>Gestion des tickets de support informatique</p>
-      <p>État du backend : {apiStatus}</p>
-    </main>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route element={<GuestRoute />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Route>
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+          </Route>
+          <Route path="*" element={<LandingRedirect />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
