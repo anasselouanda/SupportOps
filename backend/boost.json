@@ -1,0 +1,9 @@
+{
+    "agents": [
+        "codex"
+    ],
+    "cloud": false,
+    "guidelines": true,
+    "nightwatch": false,
+    "sail": false
+}

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CircleAlert, LifeBuoy, LoaderCircle, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "../auth/useAuth";
 import { getAuthError } from "../components/authErrors";
+import { roleLabel } from "../auth/roles";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -45,7 +46,10 @@ export default function DashboardPage() {
           </span>
           <span>SupportOps</span>
         </div>
-        <span className="dashboard-header-label">Espace personnel</span>
+        <nav className="dashboard-nav" aria-label="Navigation principale">
+          <span className="dashboard-header-label">Espace personnel</span>
+          {user?.role === "admin" && user.is_active && <Link to="/admin/users">Utilisateurs</Link>}
+        </nav>
       </header>
 
       <main className="dashboard-main">
@@ -70,6 +74,7 @@ export default function DashboardPage() {
             <div className="dashboard-person-details">
               <strong>{name}</strong>
               <span><Mail size={16} aria-hidden="true" /> {email}</span>
+              <span>Rôle : {roleLabel(user?.role)}</span>
             </div>
           </div>
           <div className="dashboard-status">

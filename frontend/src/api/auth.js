@@ -1,13 +1,7 @@
 import http from "./http";
 
-export async function getCurrentUser() {
-  const { data } = await http.get("/api/user");
-  return data.user;
-}
-
-export async function register(form) {
-  await http.get("/sanctum/csrf-cookie");
-  const { data } = await http.post("/api/register", form);
+export async function getCurrentUser(signal) {
+  const { data } = await http.get("/api/user", { signal });
   return data.user;
 }
 

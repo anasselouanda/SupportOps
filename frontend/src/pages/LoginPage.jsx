@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ArrowRight, CircleAlert, LoaderCircle } from "lucide-react";
 import { useAuth } from "../auth/useAuth";
 import AuthLayout from "../components/AuthLayout";
@@ -8,7 +8,7 @@ import { getAuthError } from "../components/authErrors";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, sessionError } = useAuth();
+  const { login, sessionError, sessionNotice } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState(null);
@@ -40,14 +40,14 @@ export default function LoginPage() {
     }
   }
 
-  const notice = formError || sessionError;
+  const notice = formError || sessionNotice || sessionError;
 
   return (
     <AuthLayout
       eyebrow="Bienvenue"
       title="Connexion"
       description="Connectez-vous à votre espace SupportOps."
-      footer={<>Vous n’avez pas encore de compte ? <Link to="/register">Créer un compte</Link></>}
+      footer="Pour obtenir un compte, contactez votre administrateur."
     >
       {notice && (
         <div className="auth-alert" role="alert">

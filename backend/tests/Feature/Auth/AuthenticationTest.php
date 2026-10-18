@@ -4,7 +4,6 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -15,82 +14,21 @@ class AuthenticationTest extends TestCase
 
     private const PASSWORD = 'SecurePassword123!';
 
-    public function test_registration_succeeds_and_returns_only_public_user_fields(): void
-    {
-        $response = $this->withHeader('Origin', self::FRONTEND_ORIGIN)
-            ->postJson('/api/register', $this->registrationData());
-
-        $user = User::query()->where('email', 'anass@example.com')->firstOrFail();
-
-        $response->assertCreated()->assertExactJson([
-            'message' => 'Compte créé avec succès.',
-            'user' => [
-                'id' => $user->id,
-                'name' => 'Anass',
-                'email' => 'anass@example.com',
-            ],
-        ]);
-
-        $this->assertDatabaseHas('users', [
-            'id' => $user->id,
-            'name' => 'Anass',
-            'email' => 'anass@example.com',
-        ]);
-    }
-
-    public function test_registration_rejects_invalid_data(): void
+    public function test_registration_is_closed_and_returns_404_without_creating_a_user(): void
     {
         $this->withHeader('Origin', self::FRONTEND_ORIGIN)
             ->postJson('/api/register', [
-                'name' => '',
-                'email' => 'not-an-email',
-                'password' => 'short',
-                'password_confirmation' => 'different',
+                'name' => 'Uninvited Admin',
+                'email' => 'uninvited@example.com',
+                'password' => self::PASSWORD,
+                'password_confirmation' => self::PASSWORD,
+                'role' => 'admin',
+                'is_active' => true,
             ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['name', 'email', 'password']);
+            ->assertNotFound();
 
         $this->assertDatabaseCount('users', 0);
-    }
-
-    public function test_registration_rejects_an_existing_email(): void
-    {
-        User::factory()->create(['email' => 'anass@example.com']);
-
-        $this->withHeader('Origin', self::FRONTEND_ORIGIN)
-            ->postJson('/api/register', $this->registrationData())
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('email');
-
-        $this->assertDatabaseCount('users', 1);
-    }
-
-    public function test_registration_hashes_the_password_instead_of_storing_plaintext(): void
-    {
-        $this->withHeader('Origin', self::FRONTEND_ORIGIN)
-            ->postJson('/api/register', $this->registrationData())
-            ->assertCreated();
-
-        $user = User::query()->where('email', 'anass@example.com')->firstOrFail();
-        $storedPassword = $user->getRawOriginal('password');
-
-        $this->assertNotSame(self::PASSWORD, $storedPassword);
-        $this->assertTrue(Hash::check(self::PASSWORD, $storedPassword));
-        $this->assertDatabaseMissing('users', [
-            'email' => 'anass@example.com',
-            'password' => self::PASSWORD,
-        ]);
-    }
-
-    public function test_registration_authenticates_the_user_with_the_web_guard(): void
-    {
-        $this->withHeader('Origin', self::FRONTEND_ORIGIN)
-            ->postJson('/api/register', $this->registrationData())
-            ->assertCreated();
-
-        $user = User::query()->where('email', 'anass@example.com')->firstOrFail();
-
-        $this->assertAuthenticatedAs($user, 'web');
+        $this->assertGuest('web');
     }
 
     public function test_login_succeeds_and_returns_only_public_user_fields(): void
@@ -109,6 +47,8 @@ class AuthenticationTest extends TestCase
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'role' => 'employee',
+                    'is_active' => true,
                 ],
             ]);
 
@@ -180,6 +120,8 @@ class AuthenticationTest extends TestCase
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'role' => 'employee',
+                    'is_active' => true,
                 ],
             ]);
     }
@@ -238,16 +180,6 @@ class AuthenticationTest extends TestCase
                 'status' => 'ok',
                 'message' => 'API SupportOps disponible',
             ]);
-    }
-
-    private function registrationData(): array
-    {
-        return [
-            'name' => 'Anass',
-            'email' => 'anass@example.com',
-            'password' => self::PASSWORD,
-            'password_confirmation' => self::PASSWORD,
-        ];
     }
 
     private function createUser(): User

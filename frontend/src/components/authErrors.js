@@ -3,6 +3,15 @@ export function getAuthError(error, { login = false } = {}) {
   const errors = error?.response?.data?.errors;
   const fieldErrors = {};
 
+  if (status === 403) {
+    return {
+      fieldErrors,
+      formError: error.response?.data?.code === "account_disabled"
+        ? "Votre compte a été désactivé. Contactez un administrateur."
+        : "Accès interdit. Vous n’avez pas l’autorisation d’effectuer cette action.",
+    };
+  }
+
   if (status === 422 && errors && typeof errors === "object") {
     for (const [field, messages] of Object.entries(errors)) {
       const first = Array.isArray(messages) ? messages[0] : messages;
