@@ -78,6 +78,8 @@ export default function AdminUsersPage() {
         </Link>
         <nav className="dashboard-nav" aria-label="Navigation principale">
           <Link to="/dashboard">Tableau de bord</Link>
+          <Link to="/tickets">Tickets</Link>
+          <Link to="/tickets/new">Nouveau ticket</Link>
           <Link to="/admin/users" aria-current="page">Utilisateurs</Link>
         </nav>
       </header>

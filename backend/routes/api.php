@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\TechnicianController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
@@ -37,6 +38,7 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     });
 
     Route::prefix('v1/admin')->name('admin.')->group(function () {
+        Route::get('/technicians', [TechnicianController::class, 'index'])->name('technicians.index');
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::patch('/users/{user}', [UserController::class, 'update'])->name('users.update');

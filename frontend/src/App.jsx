@@ -7,6 +7,9 @@ import LoginPage from "./pages/LoginPage";
 import AdminRoute from "./routes/AdminRoute";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import DashboardPage from "./pages/DashboardPage";
+import TicketsPage from "./pages/TicketsPage";
+import NewTicketPage from "./pages/NewTicketPage";
+import TicketDetailPage from "./pages/TicketDetailPage";
 
 function LandingRedirect() {
   const { user, loading } = useAuth();
@@ -28,6 +31,9 @@ function App() {
           </Route>
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/tickets" element={<TicketsPage />} />
+            <Route path="/tickets/new" element={<NewTicketPage />} />
+            <Route path="/tickets/:ticketId" element={<TicketDetailPage />} />
           </Route>
           <Route path="/register" element={<Navigate to="/login" replace />} />
           <Route element={<AdminRoute />}>

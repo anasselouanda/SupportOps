@@ -35,10 +35,13 @@ Ces endpoints exigent un administrateur actif. L'authentification et l'autorisat
 | Méthode | Endpoint | Succès |
 | --- | --- | --- |
 | GET | `/api/v1/admin/users` | 200, pagination Laravel |
+| GET | `/api/v1/admin/technicians` | 200 `{ data: [{ id, name }], links, meta }` |
 | POST | `/api/v1/admin/users` | 201 `{ message, user }` |
 | PATCH | `/api/v1/admin/users/{user}` | 200 `{ message, user }` |
 
 La liste accepte `page` (entier >= 1) et `per_page` (entier de 1 à 100, défaut 15). Elle renvoie `data` (profils publics), `current_page`, `last_page`, `per_page`, `total` et les autres métadonnées standard du paginateur Laravel.
+
+La liste dédiée `/api/v1/admin/technicians` retourne uniquement les techniciens actifs, triés par `name`, puis `id`. Elle accepte seulement `page` et `per_page` avec les mêmes bornes et renvoie la pagination API Resource dans `links` et `meta`. Les profils sont limités à `id` et `name`, sans email ni état du compte. Un invité reçoit 401 ; un employé ou technicien reçoit 403 ; un administrateur désactivé reçoit la réponse `account_disabled` et sa session est invalidée. Les paramètres invalides ou inconnus reçoivent 422. React parcourt toutes les pages de cet endpoint, par lots de 100, pour proposer tous les techniciens actifs lors d’une affectation.
 
 Création : `name`, `email`, `role`, `password`, `password_confirmation`, et `is_active` facultatif (true par défaut). Le nom et l'email sont limités à 255 caractères, l'email est unique, le mot de passe confirmé contient au moins huit caractères. Le rôle doit appartenir aux trois valeurs autorisées et l'activation est un booléen.
 
@@ -116,7 +119,7 @@ Requête avec cookie et CSRF → authentification et activation → autorisation
 
 ### Préparation locale
 
-Depuis `backend`, avec PHP 8.3 ou plus et votre configuration MySQL habituelle : `php artisan migrate`. Cette commande reste à exécuter localement : aucune migration ni aucun seeder n’a été lancé sur la base de développement pendant cette intervention. Les migrations ajoutent les trois tables et leurs contraintes ; elles ne modifient pas les données des tables existantes. Aucune catégorie métier ni donnée de démonstration n’est insérée automatiquement. Il faut disposer de catégories actives dans la base pour créer des tickets ; aucun endpoint de gestion des catégories n’est inclus.
+Depuis `backend`, avec PHP 8.3 ou plus et votre configuration MySQL habituelle, vérifier `php artisan migrate:status` et appliquer les migrations manquantes avec `php artisan migrate`. Au contrôle du 18 octobre 2026, les onze migrations sont déjà appliquées et une requête Laravel réelle vers MySQL réussit. Aucun migrate ni seeder n’a été exécuté sur la base de développement pendant cette intervention frontend. Aucune catégorie métier ni donnée de démonstration n’est insérée automatiquement. Il faut disposer de catégories actives pour créer des tickets ; aucun endpoint de gestion des catégories n’est inclus.
 
 ## Workflow, commentaires et historique
 
@@ -157,4 +160,10 @@ Chaque mutation et ses événements sont atomiques. Les événements sont `updat
 
 Erreurs : 401 invité ; désactivation existante 403 `account_disabled` avec invalidation de session ; 404 ticket absent/invisible ; 403 action interdite pour le rôle sur un ticket visible ; 422 données, état ou transition invalides. Les permissions de rôle sont vérifiées avant les conditions métier. Les lectures restent possibles sur `closed`. Aucun mécanisme de version explicite ni réponse 409 ajouté : les écritures relisent l’état courant sous verrou et réévaluent les conditions dans leur transaction.
 
-La préparation locale utilise toujours `php artisan migrate` : deux migrations supplémentaires ajoutent la note nullable et `ticket_comments`, en préservant les données existantes. Elles n’ont pas été appliquées à la base de développement. Voir [les scénarios de recette, la matrice de permissions et les règles de concurrence](ticket-workflow.md).
+La note nullable et `ticket_comments` proviennent de deux migrations additives, déjà marquées appliquées lors du contrôle local du 18 octobre 2026. L’ajout de la liste des techniciens et de l’interface React ne nécessite aucune migration supplémentaire. Voir [les scénarios de recette, la matrice de permissions et les règles de concurrence](ticket-workflow.md).
+
+## Consommation React
+
+Les routes protégées `/tickets`, `/tickets/new` et `/tickets/:ticketId` utilisent `frontend/src/api/tickets.js`, qui réutilise le client Axios partagé et les cookies Sanctum. Les filtres `search`, `status`, `priority`, `page` et `per_page` sont conservés dans l’URL de la liste. Les requêtes de lecture obsolètes sont annulées ou ignorées.
+
+L’API ne renvoie pas de capacités d’action : leur affichage est centralisé dans `ticketCapabilities`, tandis que Laravel garde le contrôle d’autorisation définitif. Les dates UTC sont affichées en `Africa/Casablanca`. Chaque écriture prépare le cookie CSRF, attend la confirmation serveur, puis recharge le ticket et ses activités. Un résultat réseau incertain ne déclenche aucune reprise automatique ; le détail impose une actualisation avant une nouvelle écriture. Une erreur 403 ordinaire conserve la session ; 401 et désactivation réutilisent le comportement existant d’AuthProvider. Une erreur 419 demande une reconnexion, sans rejouer l’écriture.

@@ -48,6 +48,8 @@ export default function DashboardPage() {
         </div>
         <nav className="dashboard-nav" aria-label="Navigation principale">
           <span className="dashboard-header-label">Espace personnel</span>
+          <Link to="/tickets">Tickets</Link>
+          <Link to="/tickets/new">Nouveau ticket</Link>
           {user?.role === "admin" && user.is_active && <Link to="/admin/users">Utilisateurs</Link>}
         </nav>
       </header>
