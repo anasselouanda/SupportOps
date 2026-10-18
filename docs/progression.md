@@ -1,160 +1,151 @@
-# Progression SupportOps — intégration et API tickets
+# Progression SupportOps — workflow des tickets
 
-Intervention du 18 octobre 2026 dans `C:\Users\admin\Desktop\SupportOps`. Branche active : `feature/tickets-api`. Les changements de tickets restent non committés et non poussés pour revue.
+Intervention du 18 octobre 2026 dans `C:\Users\admin\Desktop\SupportOps`. Branche active : `feature/ticket-workflow`. Les nouveaux changements restent non indexés, non committés et non poussés pour revue. Aucun écran React ajouté.
 
-## Sauvegarde et audit
+## Audit et validation de l’étape précédente
 
-Sauvegarde locale hors dépôt : `C:\Users\admin\Desktop\SupportOps-backups\20261018-122551`.
+Tous les AGENTS.md applicables ont été lus ; seul `backend/AGENTS.md` est présent et aucun `.ai/rules` applicable n’existe. Authentification Sanctum par session, rôles, désactivation, catégories actives, création/liste/détail, scope `visibleTo`, TicketPolicy, événements, migrations, factories et documentation inspectés. Le worktree Desktop était sur `feature/tickets-api` avec 25 fichiers pertinents non committés ; le worktree initial du chat était détaché. Aucun blocage constaté dans la première API.
 
-- `SupportOps.bundle` : toutes les références avant intégration ; `git bundle verify` réussi, historique complet.
-- `roles-staged.patch` : patch binaire initial vide (index initial vide).
-- `roles-unstaged.patch` : modifications suivies du worktree rôles.
-- `roles-untracked/` : les 27 fichiers non suivis utiles avec chemins relatifs ; empreintes SHA-256 source/copie identiques.
+Isolation relue avant tout test : `phpunit.xml` force `testing`, SQLite `:memory:`, DB_URL vide, cache/session `array`. `tests/bootstrap.php` refuse toute incohérence ou configuration en cache ; TestCase vérifie la configuration effective avant RefreshDatabase. Aucun test sur la base de développement.
+
+Premier contrôle complet : **190 tests, 950 assertions réussis**, 18,370 s. PHP 8.3.30 utilisé : `C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe` ; PHP 8.0 initial du PATH incompatible. Versions installées vérifiées : Laravel 13.34.0, Sanctum 4.3.3, PHPUnit 12.5.37. Le skill testing-best-practices mentionné dans AGENTS reste introuvable dans les sources disponibles ; les conventions PHPUnit existantes sont suivies.
+
+## Sauvegarde et Git
+
+Sauvegarde locale hors dépôt : `C:\Users\admin\Desktop\SupportOps-backups\20261018-125511`.
+
+- `SupportOps.bundle` : références initiales complètes ; `git bundle verify` réussi.
+- `staged.patch` et `unstaged.patch` : patches binaires ; le premier est vide car l’index initial était vide.
+- `untracked/` : les 21 fichiers non suivis utiles, chemins relatifs conservés et SHA-256 source/copie identiques.
 - `untracked-inventory.txt`, `branches-sha.txt` : inventaires initiaux.
-- `after-integration.bundle` : copie supplémentaire après commit, vérifiée avant suppression.
-- `integration-inventory.txt` : SHA intégré/poussé, suppression et création de branche.
+- `after-integration.bundle` : sauvegarde supplémentaire après commit et avant suppression de branche ; vérifiée.
+- `integration-inventory.txt` : SHA intégré/poussé et opérations de branches.
 
-Les dépendances et artefacts générés sont exclus des copies. Aucun secret, `.env` ou dump ajouté au commit. Aucune opération sur la base de développement.
+Les dépendances et artefacts générés sont exclus des copies. Aucun .env, secret ou dump ajouté au commit. La sauvegarde concerne code et historique, aucune base de données.
 
-L’audit a trouvé `main` propre dans le dépôt Desktop et le travail rôles non committé dans `C:\Users\admin\.codex\worktrees\cd39\SupportOps`. Le worktree initial de ce chat (`1ac2`) était détaché et propre. Instructions `backend/AGENTS.md` lues ; aucun `.ai/rules` applicable. Le skill `testing-best-practices` référencé est introuvable dans les sources disponibles ; les tests suivent les conventions PHPUnit existantes.
+Origin confirmé : `https://github.com/anasselouanda/SupportOps.git`. Le coordinateur a seul réalisé les opérations Git, séquentiellement, sans force, reset, clean ou stash.
 
-`origin` vérifié : `https://github.com/anasselouanda/SupportOps.git`. Toutes les commandes Git sont exécutées séquentiellement par le coordinateur. L’audit hors sandbox a initialement nécessité une autorisation ; après reprise avec accès disponible, aucune erreur de fusion, push ou suppression.
+Les 25 fichiers de l’API initiale ont été indexés par chemins explicites puis le diff indexé a été examiné. Commit : **`89414500951a6f3b4e5635e48136bf9fbe8a65b4`**, `feat: add secure ticket creation and scoped consultation API`.
 
-## Intégration des rôles
+`git fetch origin`, passage sur main, `git merge --ff-only origin/main`, puis `git merge --ff-only feature/tickets-api` réussis. Main n’avait pas divergé et la branche distante tickets n’existait pas. Après intégration : **190 tests, 950 assertions réussis**, 14,904 s, et 11 routes API contrôlées. `git push origin main` réussi. `main`, `origin/main` et la référence publiée GitHub désignent le commit complet ci-dessus.
 
-45 fichiers pertinents inspectés et indexés par chemins explicites, sans `git add .`. Commit : `1bbdab541f7fb0521c5b9a5387dabc163c5d325f`, `feat: enforce account roles, activation and administrator permissions`.
+Après sauvegardes et push vérifiés, `git merge-base --is-ancestor feature/tickets-api origin/main` a réussi. La branche locale `feature/tickets-api`, SHA `89414500951a6f3b4e5635e48136bf9fbe8a65b4`, a été supprimée avec `git branch -d`. Aucune branche distante à supprimer : origin annonçait seulement main. `git fetch --prune origin` réussi. `origin/HEAD` conservée. Aucun autre travail non fusionné ni branche supplémentaire à préserver ; les anciens worktrees détachés restent intacts.
 
-Après `git fetch origin`, aucune version distante de `feature/roles-permissions` n’existait. `git merge --ff-only origin/main`, puis `git merge --ff-only feature/roles-permissions` dans `main` ont réussi. Aucun conflit.
+Depuis main propre et synchronisée : `git switch -c feature/ticket-workflow`, puis `git branch --show-current`, branche confirmée. Les nouveaux changements de cette branche n’ont aucun commit ni push.
 
-Contrôles après intégration dans Desktop :
+## Contrat et contributions des agents
 
-- PHPUnit, PHP 8.3.30, SQLite `:memory:` : **82 tests, 375 assertions réussis**.
-- `npm.cmd run lint` et `npm.cmd run build` : réussis.
-- `php artisan route:list --path=api --except-vendor --json --no-interaction` : sept routes avant tickets, auth/health conservés et inscription publique absente.
-- `git diff --cached --check` : réussi avant commit.
+Contrat, permissions, transitions, événements et propriété exclusive fixés avant le travail parallèle :
 
-`git push origin main` réussi. `main`, `origin/main` et la référence GitHub (`git ls-remote --heads origin`) désignent `1bbdab541f7fb0521c5b9a5387dabc163c5d325f`.
+- Agent workflow : `TicketWorkflowService`, contrôleur workflow, trois Form Requests, modèle Ticket et TicketResource ; 7 fichiers. Pint ciblé et lint 7/7 réussis.
+- Agent commentaires/historique : modèle TicketComment, service de commentaires, deux contrôleurs, deux Requests et deux Resources ; 8 fichiers. Pint ciblé et lint 8/8 réussis.
+- Agent tests : six classes dans `tests/Feature/TicketWorkflow/`, factory TicketComment, adaptation TicketFactory et ajout de la clé resolution_note dans le contrat testé de création. Aucun fichier métier modifié.
+- Coordinateur : routes, TicketPolicy, migrations additives communes, contexte transactionnel TicketMutation, TicketScopedRequest, configuration UTC MySQL, documentation et validation finale. Aucun fichier édité simultanément par plusieurs agents.
 
-## Nettoyage
+Le [contrat API](api.md) et la [matrice de permissions, le workflow et les recettes](ticket-workflow.md) décrivent le résultat final.
 
-Branche locale supprimée : `feature/roles-permissions`, SHA `1bbdab541f7fb0521c5b9a5387dabc163c5d325f`. Sauvegardes vérifiées, push réussi, contrôle `git merge-base --is-ancestor feature/roles-permissions origin/main` réussi. Son worktree propre a été détaché sur `origin/main`, puis suppression avec `git branch -d`.
+Endpoints ajoutés :
 
-Aucune branche distante à supprimer : GitHub annonçait uniquement `main`. `origin/HEAD` préservée. `git fetch --prune origin` réussi ; seul `main` restait localement avant création de `feature/tickets-api` depuis `main` propre et synchronisée. Branche active confirmée. Les anciens worktrees détachés sont préservés. Aucune branche non fusionnée supplémentaire à conserver.
+```text
+PATCH /api/v1/tickets/{ticket}
+PATCH /api/v1/tickets/{ticket}/assignment
+PATCH /api/v1/tickets/{ticket}/status
+POST  /api/v1/tickets/{ticket}/comments
+GET   /api/v1/tickets/{ticket}/comments
+GET   /api/v1/tickets/{ticket}/events
+```
 
-## Répartition des trois agents
+Le demandeur corrige titre/description/catégorie seulement sur open non assigné ; la priorité après création appartient à l’administrateur. L’affectation est administrative et vise un technicien actif ; le retrait n’est possible que sur open. Le cycle autorise open vers in_progress, in_progress vers resolved, resolved vers closed ou vers open. Résoudre exige une note non blanche (maximum 10 000 caractères). Clôturer et rouvrir appartiennent au demandeur ou à l’administrateur. La réouverture garde l’affectation et l’ancienne résolution dans l’historique, mais efface les dates et la note courantes. Closed est totalement immuable.
 
-- Backend : modèles et relations, trois migrations, Form Requests, contrôleurs, API Resources, service transactionnel.
-- Tests : `tests/Feature/Tickets/` et factories Category, Ticket, TicketEvent.
-- Revue : lecture seule des permissions et régressions.
-- Coordinateur : seul opérateur Git, routes, TicketPolicy, documentation et intégration ; corrections finales après fin des éditions des agents.
+Commentaires : auteur de session, contenu non blanc de 1 à 5 000 caractères, sur ticket visible non clos. Commentaires et événements ont des lectures paginées 15 par défaut, 100 maximum, chronologiques, avec profils limités à id/name et chargés à l’avance. Aucun endpoint de suppression ou modification de commentaires/événements/tickets.
 
-Propriété exclusive des fichiers, aucune édition simultanée. Contrat fixé avant délégation, détaillé dans [api.md](api.md). Périmètre limité à catégories, création, liste et détail. Aucun frontend tickets, affectation, transition, commentaire, matériel ou statistiques.
+## Revue permissions et transactions
 
-Les tickets ont une référence unique `TKT-<ULID>`, un demandeur issu de la session, un technicien nullable, une catégorie, titre/description/priorité/statut et dates. Les nouveaux tickets sont ouverts et non assignés. Une transaction crée le ticket et son événement. Le scope `visibleTo` partagé protège listes et détails : employé propriétaire, technicien propriétaire ou assigné, administrateur tous. TicketPolicy refuse les détails extérieurs en 404. Recherche groupée et profils limités à `id`/`name`, relations préchargées.
+Revue finale du coordinateur effectuée après livraison des agents : visibilité 404 avant validation, autorisations de rôle 403 avant conditions métier 422, fermeture terminale, protection des champs sensibles et absence de contournement par PATCH général vérifiées. Les services relisent acteur et ticket sous verrou, réévaluent les permissions/états, puis écrivent mutation et événements dans la même transaction. Le commentaire partage le verrou avec la clôture. Les cibles et catégories sont revérifiées sous verrou. Une désactivation intervenue après le premier middleware est également détectée et invalide la session.
 
-## Vérifications tickets
+Les événements portent acteur/date serveur et avant/après utiles : updated, priority_changed, assignment_changed, status_changed, resolved, closed, reopened, comment_added. Les événements created précédents restent compatibles. Modifications et affectations identiques n’ajoutent aucun faux événement. Le test d’échec du deuxième événement d’un PATCH combiné confirme que le premier événement et la correction sont aussi annulés.
 
-Résultats définitifs :
+L’application utilise UTC et `config/database.php` fixe la connexion mysql à `+00:00` pour les conversions TIMESTAMP. Le connecteur Laravel installé supporte cette option ; aucun .env modifié ni connexion MySQL de développement ouverte pour ce contrôle. Aucune gestion de version ou réponse 409 ajoutée. Les erreurs de concurrence reconnues par Laravel peuvent provoquer jusqu’à cinq tentatives de transaction.
 
-- Agent backend : Pint ciblé réussi et syntaxe PHP valide sur ses 14 fichiers.
-- Agent tests : `php artisan test --compact --no-ansi tests/Feature/Tickets`, **108 tests, 575 assertions réussis**, 11,53 s après formatage ciblé.
-- Coordinateur : `php vendor/bin/pint --dirty --format agent`, réussi sur les fichiers PHP concernés uniquement.
-- Coordinateur : `php vendor/phpunit/phpunit/phpunit --colors=never`, **190 tests, 950 assertions réussis**, 18,223 s après le formatage final. Cette suite inclut les 108 cas tickets et les 82 cas de régression existants.
-- Routes API : **11 routes**, dont les quatre nouvelles routes protégées par `auth:sanctum` et `EnsureUserIsActive`. Authentification, administration et health conservés.
-- Syntaxe PHP de TicketPolicy et des routes : valide.
-- `git diff --check` : réussi ; seuls des avertissements LF/CRLF liés à la configuration Git locale sont affichés.
-- Revue indépendante en lecture seule : aucun défaut bloquant identifié. Une attente de test rôle inconnu a été corrigée avant son exécution : un détail hors périmètre répond 404.
+## Tests et résultats réels
 
-Couverture : accès anonyme, désactivation avec session web et invalidation, changements de rôle avec garde obsolète, création pour chaque rôle, bornes de longueur, priorité par défaut, refus des champs sensibles même nuls, demandeur de session, références distinctes et unicité en base, événement initial et rollback après échec simulé, acteur/catégorie revérifiés, périmètres liste/détail et policy 404 directe, recherche titre/référence et caractères `%`, `_`, `!` littéraux, filtres sans fuite, pagination 15 par défaut et bornes 1–100, tri stable, catégories actives uniquement, profils minimaux et requêtes sans N+1.
+- Nouveaux tests workflow ciblés : **182 tests, 931 assertions réussis**, 19,17 s.
+- Workflow + StoreTicketTest : **229 tests, 1 204 assertions réussis**, 22,82 s.
+- Pint final : `php vendor/bin/pint --dirty --format agent`, réussi ; corrections de style sur TicketMutation et tri des imports des routes, uniquement fichiers concernés.
+- Suite complète après formatage : `php vendor/phpunit/phpunit/phpunit --colors=never`, **372 tests, 1 881 assertions réussis**, 35,960 s.
+- Routes finales : `php artisan route:list --path=api --except-vendor --json --no-interaction`, **17 routes**, dont les six nouvelles ; middleware Sanctum et activation conservé, auth/health inchangés.
 
-Les agents ont uniquement modifié leurs fichiers attribués ; le coordinateur n’a eu aucune correction métier à apporter après leur livraison. Aucun nouveau compte temporaire conservé.
+Couverture : chaque transition autorisée et interdite, technicien actif requis au démarrage, note requise et bornée, clôture par demandeur/admin, refus au technicien non demandeur, réouverture et ancien historique, ticket clos immuable, affectations et cibles interdites, noops, PATCH partiel et priorité réservée, validation des clés forgées, commentaires selon rôle/état/auteur de session, historique limité au périmètre, pagination/profils/N+1, UTC, neuf cas de rollback sur échec d’audit, acteurs/affectations/états obsolètes, recette API complète avec réouverture. Les 190 tests précédents couvrent la non-régression de la création, liste, détail, authentification, activation et administration.
 
-Isolation vérifiée avant tests : `phpunit.xml` force `testing`, SQLite `:memory:`, DB_URL vide, cache/session `array`. `tests/bootstrap.php` refuse les écarts et la configuration en cache ; TestCase contrôle la configuration effective avant RefreshDatabase. Aucun `.env` modifié.
+Les premiers échecs étaient dans les nouveaux tests : comparaison de snapshots d’attributs dans un ordre différent et cache Sanctum conservé entre les identités simulées dans une même application de test. Les tests comparent maintenant les valeurs relues et nettoient le garde lors des changements d’acteur ; aucune protection métier n’a été désactivée.
 
-PHP compatible : `C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe`, version 8.3.30 ; PHP 8.0 du PATH initial incompatible. Versions installées contrôlées dans le worktree rôles : Laravel 13.34.0, Sanctum 4.3.3, PHPUnit 12.5.37. `PAO_DISABLE=1` désactive seulement la capture de sortie Pao ; deux exécutions silencieuses ont été interrompues puis remplacées par une exécution achevée avec sortie visible.
+Contrôles non effectués : concurrence réelle multi-connexion MySQL, round-trip TIMESTAMP/UTC sur MySQL réel, application des migrations sur MySQL, navigateur réel avec cookies et CSRF. SQLite ne prouve pas le comportement des verrous MySQL. La simulation d’une clôture intervenue avant le commentaire prouve la relecture, sans prétendre reproduire deux transactions simultanées. Aucun compte temporaire créé ni conservé. Frontend non modifié, build non rejoué pour cette phase exclusivement backend.
 
 ## Commandes locales restantes
+
+Après revue des changements, utiliser PHP 8.3 ou plus :
 
 ```powershell
 $env:PATH = 'C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64;' + $env:PATH
 cd C:\Users\admin\Desktop\SupportOps\backend
+php artisan config:clear
 php artisan migrate
-# Uniquement si aucun administrateur n’existe déjà :
-php artisan supportops:create-admin
 ```
 
-Aucune de ces opérations exécutée sur la base de développement. Aucun seeder ni compte temporaire créé. Aucune catégorie métier inventée : des catégories actives devront exister en base pour créer des tickets, sans endpoint de gestion inclus. Aucun `migrate:fresh` sur la base de développement. Les migrations sont additives ; les données existantes sont conservées lors de leur application.
+Ces commandes de préparation restent à votre charge : aucune migration ni aucun seeder exécuté sur la base de développement. Les migrations ajoutent une note nullable et une table de commentaires sans modifier les tickets existants. Si les migrations de l’API initiale ne sont pas encore appliquées, migrate les appliquera aussi dans l’ordre. Prévoir une catégorie active et des comptes existants avec les trois rôles pour la recette ; aucun nom de catégorie métier inventé ni seed automatique.
 
 Pour reproduire les contrôles isolés :
 
 ```powershell
 $env:PAO_DISABLE = '1'
+php artisan test --compact --no-ansi tests/Feature/TicketWorkflow
 php vendor/phpunit/phpunit/phpunit --colors=never
 php artisan route:list --path=api --except-vendor --json --no-interaction
 ```
 
-Parcours navigateur réel avec cookies/CSRF, concurrence MySQL multi-connexion et application des migrations sur MySQL : non effectués. SQLite ne valide pas tous les comportements des verrous MySQL.
+La recette documentée couvre employé crée, administrateur assigne, technicien démarre, échanges de commentaires, technicien résout, employé clôture ; un scénario distinct rouvre avant clôture et conserve les résolutions historiques. Ne pas utiliser migrate:fresh sur la base de développement.
 
-## Parcours d’une requête
+## Fichiers concernés et état Git
 
-Requête avec session et CSRF → authentification/activation → autorisation et validation par Form Request → transaction, catégorie revérifiée → ticket et événement en base → API Resource et JSON 201. Une validation invalide répond 422 avant écriture ; l’échec transactionnel annule toute création partielle. Pour les lectures, le scope autorisé et TicketPolicy précèdent la réponse, sans transaction d’écriture.
+34 fichiers : 9 modifiés, 25 nouveaux. Aucun changement de dépendances ou de frontend.
 
-## Fichiers et état final
+Modifiés : TicketResource, Ticket, TicketPolicy, config/database.php, TicketFactory, routes/api.php, tests/Feature/Tickets/StoreTicketTest.php, docs/api.md, docs/progression.md.
 
-25 fichiers concernés (4 modifiés et 21 nouveaux), aucun changement frontend ou de dépendance pour cette étape :
+Nouveaux : trois contrôleurs TicketWorkflow/TicketComment/TicketEvent ; six Requests TicketScoped/UpdateTicket/AssignTicket/ChangeTicketStatus/StoreTicketComment/ListTicketActivity ; deux Resources TicketComment/TicketEvent ; modèle TicketComment ; trois services TicketMutation/TicketWorkflowService/TicketCommentService ; factory TicketCommentFactory ; migrations `2026_10_18_125931_add_resolution_note_to_tickets_table.php` et `2026_10_18_125933_create_ticket_comments_table.php` ; six tests AssignTicket/ChangeTicketStatus/TicketCommentsHistory/TicketMutationIntegrity/TicketWorkflowAccess/UpdateTicket sous TicketWorkflow ; docs/ticket-workflow.md.
 
-```text
-backend/app/Models/User.php
-backend/routes/api.php
-docs/api.md
-docs/progression.md
-backend/app/Http/Controllers/Api/CategoryController.php
-backend/app/Http/Controllers/Api/TicketController.php
-backend/app/Http/Requests/Tickets/ListTicketsRequest.php
-backend/app/Http/Requests/Tickets/StoreTicketRequest.php
-backend/app/Http/Resources/CategoryResource.php
-backend/app/Http/Resources/TicketResource.php
-backend/app/Models/Category.php
-backend/app/Models/Ticket.php
-backend/app/Models/TicketEvent.php
-backend/app/Policies/TicketPolicy.php
-backend/app/Services/TicketService.php
-backend/database/factories/CategoryFactory.php
-backend/database/factories/TicketEventFactory.php
-backend/database/factories/TicketFactory.php
-backend/database/migrations/2026_10_18_123225_create_categories_table.php
-backend/database/migrations/2026_10_18_123226_create_tickets_table.php
-backend/database/migrations/2026_10_18_123227_create_ticket_events_table.php
-backend/tests/Feature/Tickets/ListTicketsTest.php
-backend/tests/Feature/Tickets/StoreTicketTest.php
-backend/tests/Feature/Tickets/TicketAccessTest.php
-backend/tests/Feature/Tickets/TicketModelTest.php
-```
+Vérifications Git finales : `git diff --check` réussi (avertissements LF/CRLF uniquement), `git diff --cached --quiet` confirme l’index vide, références locales et GitHub revérifiées. Main et origin/main restent sur `89414500951a6f3b4e5635e48136bf9fbe8a65b4` ; les nouveaux développements n’ont aucun commit ni push. Branches restantes : main et feature/ticket-workflow ; origin/main seule branche distante.
 
-Branches finales : `main` et `feature/tickets-api` ; à distance, `origin/main` seulement. Les deux branches locales et `origin/main` pointent sur le commit rôles `1bbdab541f7fb0521c5b9a5387dabc163c5d325f`. Les tickets ne sont ni indexés, ni committés, ni poussés. Sortie de `git status --short --branch` dans le dépôt Desktop :
+Verdict : workflow et non-régressions validés sur base isolée, prêts pour revue. La validation réelle MySQL et navigateur reste locale. Sortie de `git status --short --branch` :
 
 ```text
-## feature/tickets-api
- M backend/app/Models/User.php
+## feature/ticket-workflow
+ M backend/app/Http/Resources/TicketResource.php
+ M backend/app/Models/Ticket.php
+ M backend/app/Policies/TicketPolicy.php
+ M backend/config/database.php
+ M backend/database/factories/TicketFactory.php
  M backend/routes/api.php
+ M backend/tests/Feature/Tickets/StoreTicketTest.php
  M docs/api.md
  M docs/progression.md
-?? backend/app/Http/Controllers/Api/CategoryController.php
-?? backend/app/Http/Controllers/Api/TicketController.php
-?? backend/app/Http/Requests/Tickets/
-?? backend/app/Http/Resources/
-?? backend/app/Models/Category.php
-?? backend/app/Models/Ticket.php
-?? backend/app/Models/TicketEvent.php
-?? backend/app/Policies/TicketPolicy.php
-?? backend/app/Services/TicketService.php
-?? backend/database/factories/CategoryFactory.php
-?? backend/database/factories/TicketEventFactory.php
-?? backend/database/factories/TicketFactory.php
-?? backend/database/migrations/2026_10_18_123225_create_categories_table.php
-?? backend/database/migrations/2026_10_18_123226_create_tickets_table.php
-?? backend/database/migrations/2026_10_18_123227_create_ticket_events_table.php
-?? backend/tests/Feature/Tickets/
+?? backend/app/Http/Controllers/Api/TicketCommentController.php
+?? backend/app/Http/Controllers/Api/TicketEventController.php
+?? backend/app/Http/Controllers/Api/TicketWorkflowController.php
+?? backend/app/Http/Requests/Tickets/AssignTicketRequest.php
+?? backend/app/Http/Requests/Tickets/ChangeTicketStatusRequest.php
+?? backend/app/Http/Requests/Tickets/ListTicketActivityRequest.php
+?? backend/app/Http/Requests/Tickets/StoreTicketCommentRequest.php
+?? backend/app/Http/Requests/Tickets/TicketScopedRequest.php
+?? backend/app/Http/Requests/Tickets/UpdateTicketRequest.php
+?? backend/app/Http/Resources/TicketCommentResource.php
+?? backend/app/Http/Resources/TicketEventResource.php
+?? backend/app/Models/TicketComment.php
+?? backend/app/Services/TicketCommentService.php
+?? backend/app/Services/TicketMutation.php
+?? backend/app/Services/TicketWorkflowService.php
+?? backend/database/factories/TicketCommentFactory.php
+?? backend/database/migrations/2026_10_18_125931_add_resolution_note_to_tickets_table.php
+?? backend/database/migrations/2026_10_18_125933_create_ticket_comments_table.php
+?? backend/tests/Feature/TicketWorkflow/
+?? docs/ticket-workflow.md
 ```
-
-Verdict : implémentation et régressions validées sur la base isolée, prête pour revue locale. Application des migrations et vérification réelle MySQL/cookies à effectuer localement ; aucun commit ni push des nouveaux développements.

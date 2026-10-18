@@ -56,7 +56,7 @@ class StoreTicketTest extends TestCase
         $this->assertNotNull($event->occurred_at);
         $this->assertEqualsCanonicalizing([
             'id', 'reference', 'title', 'description', 'priority', 'status', 'category', 'requester',
-            'technician', 'created_at', 'updated_at', 'resolved_at', 'closed_at',
+            'technician', 'created_at', 'updated_at', 'resolved_at', 'closed_at', 'resolution_note',
         ], array_keys($response->json('data')));
         $this->assertEqualsCanonicalizing(['id', 'name'], array_keys($response->json('data.requester')));
         $this->assertEqualsCanonicalizing(['id', 'name'], array_keys($response->json('data.category')));

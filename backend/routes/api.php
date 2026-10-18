@@ -3,7 +3,10 @@
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\TicketCommentController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\TicketEventController;
+use App\Http\Controllers\Api\TicketWorkflowController;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +28,12 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
         Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
         Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
         Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->whereNumber('ticket')->name('tickets.show');
+        Route::patch('/tickets/{ticket}', [TicketWorkflowController::class, 'update'])->whereNumber('ticket')->name('tickets.update');
+        Route::patch('/tickets/{ticket}/assignment', [TicketWorkflowController::class, 'assign'])->whereNumber('ticket')->name('tickets.assign');
+        Route::patch('/tickets/{ticket}/status', [TicketWorkflowController::class, 'status'])->whereNumber('ticket')->name('tickets.status');
+        Route::post('/tickets/{ticket}/comments', [TicketCommentController::class, 'store'])->whereNumber('ticket')->name('tickets.comments.store');
+        Route::get('/tickets/{ticket}/comments', [TicketCommentController::class, 'index'])->whereNumber('ticket')->name('tickets.comments.index');
+        Route::get('/tickets/{ticket}/events', [TicketEventController::class, 'index'])->whereNumber('ticket')->name('tickets.events.index');
     });
 
     Route::prefix('v1/admin')->name('admin.')->group(function () {

@@ -94,7 +94,7 @@ Le serveur prend le demandeur dans la session, fixe `status` à `open` et laisse
 | `technician` | Créés par lui ou assignés à lui |
 | `admin` | Tous |
 
-La liste et `TicketPolicy` utilisent le même filtrage `visibleTo`. Un détail hors périmètre et un identifiant inexistant répondent 404. Aucune opération d’affectation ou de transition n’est disponible dans cette étape.
+La liste et `TicketPolicy` utilisent le même filtrage `visibleTo`. Un détail hors périmètre et un identifiant inexistant répondent 404. Les mutations spécialisées et les lectures d’activité sont décrites ci-dessous et dans [le workflow et les permissions](ticket-workflow.md).
 
 Paramètres facultatifs de liste :
 
@@ -108,7 +108,7 @@ Paramètres facultatifs de liste :
 
 Une valeur invalide ou une clé inconnue reçoit 422 avec `{ message, errors }`. Les conditions de recherche sont groupées à l’intérieur du périmètre autorisé. Le tri est décroissant sur `created_at`, puis sur `id` pour départager les dates identiques. Les métadonnées standard Laravel sont dans `meta` (`current_page`, `last_page`, `per_page`, `total`, etc.) et les liens dans `links`.
 
-La ressource ticket expose `id`, `reference`, `title`, `description`, `priority`, `status`, `category: { id, name }`, `requester: { id, name }`, `technician: { id, name } | null`, `created_at`, `updated_at`, `resolved_at`, `closed_at`. Les dates sont sérialisées en ISO 8601 ; les deux dernières sont nulles à la création. Les relations sont chargées à l’avance, sans requête par ticket. Aucun email, rôle, état du compte, mot de passe, token ou événement interne n’est exposé par cette ressource.
+La ressource ticket expose `id`, `reference`, `title`, `description`, `priority`, `status`, `category: { id, name }`, `requester: { id, name }`, `technician: { id, name } | null`, `created_at`, `updated_at`, `resolved_at`, `closed_at` et `resolution_note`. Les dates sont sérialisées en ISO 8601 UTC ; les dates de résolution/clôture et la note sont nulles à la création. Les relations sont chargées à l’avance, sans requête par ticket. Aucun email, rôle, état du compte, mot de passe, token ou événement interne n’est exposé par cette ressource.
 
 ### Parcours d’une création
 
@@ -117,3 +117,44 @@ Requête avec cookie et CSRF → authentification et activation → autorisation
 ### Préparation locale
 
 Depuis `backend`, avec PHP 8.3 ou plus et votre configuration MySQL habituelle : `php artisan migrate`. Cette commande reste à exécuter localement : aucune migration ni aucun seeder n’a été lancé sur la base de développement pendant cette intervention. Les migrations ajoutent les trois tables et leurs contraintes ; elles ne modifient pas les données des tables existantes. Aucune catégorie métier ni donnée de démonstration n’est insérée automatiquement. Il faut disposer de catégories actives dans la base pour créer des tickets ; aucun endpoint de gestion des catégories n’est inclus.
+
+## Workflow, commentaires et historique
+
+Même authentification Sanctum par cookies et contrôle d’activation que les routes précédentes. Toutes les routes utilisent un identifiant numérique de ticket. L’absence ou l’invisibilité du ticket donne 404 avant validation du contenu ou des paramètres.
+
+| Méthode | Endpoint | Données / réponse |
+| --- | --- | --- |
+| PATCH | `/api/v1/tickets/{ticket}` | Champs partiels `title`, `description`, `category_id`, `priority` ; 200 `{ data: ticket }` |
+| PATCH | `/api/v1/tickets/{ticket}/assignment` | `technician_id` obligatoire, entier ou null ; 200 `{ data: ticket }` |
+| PATCH | `/api/v1/tickets/{ticket}/status` | `status`, et `resolution_note` uniquement pour résoudre ; 200 `{ data: ticket }` |
+| POST | `/api/v1/tickets/{ticket}/comments` | `content` ; 201 `{ data: comment }` |
+| GET | `/api/v1/tickets/{ticket}/comments` | 200 `{ data: [comment], links, meta }` |
+| GET | `/api/v1/tickets/{ticket}/events` | 200 `{ data: [event], links, meta }` |
+
+### PATCH général
+
+Au moins un champ autorisé doit être transmis. Les bornes de titre, description et catégorie sont les mêmes qu’à la création, mais les champs omis ne sont pas exigés. Le demandeur peut modifier titre, description et catégorie seulement lorsque le ticket est `open` et non assigné. Seul un administrateur peut transmettre `priority` après création, même pour conserver sa valeur. L’administrateur peut corriger ces quatre champs sur tout ticket non clos. Le demandeur, le technicien, le statut, la référence, la note de résolution et les dates sont refusés sur cet endpoint. Un PATCH sans changement réel renvoie 200 sans nouvel événement et sans réécrire le ticket.
+
+### Affectation
+
+Seul un administrateur peut affecter ou réaffecter un ticket `open` ou `in_progress` à un utilisateur actif de rôle `technician`. Le retrait (`technician_id: null`) est possible uniquement sur `open`. L’affectation ne modifie pas le statut. Réaffecter `in_progress` conserve cet état. Une affectation identique ne crée aucun événement fictif ; l’état et l’éligibilité du destinataire restent contrôlés.
+
+### Statut et résolution
+
+Seules quatre transitions sont admises : `open → in_progress`, `in_progress → resolved`, `resolved → closed` et `resolved → open`. Le statut identique et toute autre transition sont invalides. Le démarrage et la résolution exigent l’administrateur ou le technicien actuellement assigné. Le démarrage exige en outre une affectation à un technicien toujours actif et de rôle `technician`.
+
+Pour résoudre, transmettre par exemple `{ "status": "resolved", "resolution_note": "Connexion rétablie et impression vérifiée." }`. La note est obligatoire, non blanche et limitée à 10 000 caractères. Sa clé est interdite sur les autres transitions, même avec null. Le serveur fixe `resolved_at` en UTC. Seuls le demandeur ou un administrateur peuvent clôturer (`{ "status": "closed" }`) et fixer ainsi `closed_at`. Un technicien non demandeur ne peut pas clôturer.
+
+La réouverture (`{ "status": "open" }`) est réservée au demandeur ou à l’administrateur depuis `resolved`. Elle efface `resolved_at`, `closed_at` et la note courante, conserve l’affectation et garde l’ancienne résolution dans l’historique. Le technicien sera revérifié avant le prochain démarrage. `closed` est terminal : lectures possibles, aucune mutation permise.
+
+### Commentaires et événements
+
+Un commentaire exige un ticket visible et non clos. `content` est une chaîne nettoyée des espaces de bord, non vide, de 1 à 5 000 caractères. L’auteur vient de la session. Toutes les clés supplémentaires sont rejetées, notamment `author_id`, `ticket_id`, `actor_id` et les dates. La ressource commentaire expose `id`, `ticket_id`, `content`, `author: { id, name }`, `created_at`, `updated_at`.
+
+Les deux lectures d’activité acceptent seulement `page` (entier >= 1, défaut 1) et `per_page` (entier de 1 à 100, défaut 15). Les commentaires sont triés par `created_at`, puis `id`, croissants ; les événements par `occurred_at`, puis `id`, croissants. Les relations d’auteur et d’acteur sont préchargées. La ressource événement expose `id`, `type`, `actor: { id, name }`, `occurred_at`, `metadata`. Les nouveaux événements ont `metadata: { before, after }` ; les événements `created` de l’étape précédente conservent leurs métadonnées initiales plates. Aucun email, mot de passe ou jeton n’est exposé.
+
+Chaque mutation et ses événements sont atomiques. Les événements sont `updated`, `priority_changed`, `assignment_changed`, `status_changed`, `resolved`, `closed`, `reopened`, `comment_added`, en complément de `created`. Un commentaire est référencé par `after.comment_id` sans recopier son contenu. Aucun endpoint d’édition/suppression des commentaires ou événements, ni de suppression de ticket, n’est ajouté.
+
+Erreurs : 401 invité ; désactivation existante 403 `account_disabled` avec invalidation de session ; 404 ticket absent/invisible ; 403 action interdite pour le rôle sur un ticket visible ; 422 données, état ou transition invalides. Les permissions de rôle sont vérifiées avant les conditions métier. Les lectures restent possibles sur `closed`. Aucun mécanisme de version explicite ni réponse 409 ajouté : les écritures relisent l’état courant sous verrou et réévaluent les conditions dans leur transaction.
+
+La préparation locale utilise toujours `php artisan migrate` : deux migrations supplémentaires ajoutent la note nullable et `ticket_comments`, en préservant les données existantes. Elles n’ont pas été appliquées à la base de développement. Voir [les scénarios de recette, la matrice de permissions et les règles de concurrence](ticket-workflow.md).

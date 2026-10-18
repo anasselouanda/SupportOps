@@ -24,4 +24,49 @@ class TicketPolicy
             ? Response::allow()
             : Response::denyAsNotFound();
     }
+
+    public function update(User $user, Ticket $ticket): bool
+    {
+        return $this->mayActAsRequesterOrAdministrator($user, $ticket);
+    }
+
+    public function assign(User $user, Ticket $ticket): bool
+    {
+        return $user->isActiveAdministrator() && $this->view($user, $ticket)->allowed();
+    }
+
+    public function start(User $user, Ticket $ticket): bool
+    {
+        return $this->view($user, $ticket)->allowed()
+            && ($user->isActiveAdministrator()
+                || ($user->role === User::ROLE_TECHNICIAN
+                    && (int) $ticket->technician_id === (int) $user->getKey()));
+    }
+
+    public function resolve(User $user, Ticket $ticket): bool
+    {
+        return $this->start($user, $ticket);
+    }
+
+    public function close(User $user, Ticket $ticket): bool
+    {
+        return $this->mayActAsRequesterOrAdministrator($user, $ticket);
+    }
+
+    public function reopen(User $user, Ticket $ticket): bool
+    {
+        return $this->mayActAsRequesterOrAdministrator($user, $ticket);
+    }
+
+    public function comment(User $user, Ticket $ticket): bool
+    {
+        return $this->view($user, $ticket)->allowed();
+    }
+
+    private function mayActAsRequesterOrAdministrator(User $user, Ticket $ticket): bool
+    {
+        return $this->view($user, $ticket)->allowed()
+            && ($user->isActiveAdministrator()
+                || (int) $ticket->requester_id === (int) $user->getKey());
+    }
 }

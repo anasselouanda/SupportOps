@@ -21,6 +21,7 @@ class TicketResource extends JsonResource
             'description' => $this->description,
             'priority' => $this->priority,
             'status' => $this->status,
+            'resolution_note' => $this->resolution_note,
             'category' => ['id' => $this->category->id, 'name' => $this->category->name],
             'requester' => ['id' => $this->requester->id, 'name' => $this->requester->name],
             'technician' => $this->technician === null ? null : ['id' => $this->technician->id, 'name' => $this->technician->name],

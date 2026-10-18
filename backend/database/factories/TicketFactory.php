@@ -24,6 +24,7 @@ class TicketFactory extends Factory
             'status' => 'open',
             'resolved_at' => null,
             'closed_at' => null,
+            'resolution_note' => null,
         ];
     }
 }

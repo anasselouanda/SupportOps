@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['reference', 'requester_id', 'technician_id', 'category_id', 'title', 'description', 'priority', 'status', 'resolved_at', 'closed_at'])]
+#[Fillable(['reference', 'requester_id', 'technician_id', 'category_id', 'title', 'description', 'priority', 'status', 'resolved_at', 'closed_at', 'resolution_note'])]
 class Ticket extends Model
 {
     /** @use HasFactory<TicketFactory> */
@@ -50,6 +50,12 @@ class Ticket extends Model
     public function events(): HasMany
     {
         return $this->hasMany(TicketEvent::class);
+    }
+
+    /** @return HasMany<TicketComment, $this> */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(TicketComment::class);
     }
 
     /**
