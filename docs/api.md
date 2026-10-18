@@ -6,6 +6,31 @@ Authentification Sanctum par cookies et session web. React utilise l'instance Ax
 
 Le profil public est limité à `id`, `name`, `email`, `role`, `is_active`. Les rôles sont `employee` (employé), `technician` (technicien) et `admin` (administrateur). `password` et `remember_token` ne sont jamais exposés.
 
+## Tableau de bord
+
+`GET /api/v1/dashboard` exige une session Sanctum et un compte actif, avec l’autorisation `TicketPolicy::viewAny`. Un invité reçoit 401 ; un compte désactivé reçoit 403 `account_disabled` et sa session est invalidée. Aucun paramètre n’est accepté : toute clé de query string ou de corps reçoit 422, notamment `user_id`, `requester_id`, `role`, `status` et `page`.
+
+La réponse suit l’enveloppe Resource :
+
+```json
+{
+  "data": {
+    "stats": { "total": 0, "open": 0, "in_progress": 0, "resolved": 0, "closed": 0 },
+    "recent_tickets": []
+  }
+}
+```
+
+Ces zéros correspondent à un périmètre vide. Les compteurs entiers décrivent l’état courant des tickets, sans compter les événements historiques. `total = open + in_progress + resolved + closed`. Une seule requête SQL utilise `COUNT(*)` et quatre sommes conditionnelles sur l’ensemble du périmètre, sans pagination et sans charger tous les tickets. Un statut non conforme dans ce périmètre provoque une erreur de cohérence 500, au lieu d’exclure silencieusement le ticket ou d’afficher des chiffres faux.
+
+Les compteurs et les récents réutilisent exactement `Ticket::visibleTo` : employé = tickets qu’il a créés ; technicien = tickets créés par lui ou actuellement assignés à lui ; administrateur = tous. Un ticket créé et assigné au même technicien n’est compté qu’une fois. Deux utilisateurs peuvent donc voir des totaux différents, sans possibilité d’élargir leur accès depuis le navigateur.
+
+`recent_tickets` contient au maximum cinq tickets, triés par `created_at` décroissant puis `id` décroissant. Chaque objet expose uniquement `id`, `reference`, `title`, `status`, `priority`, `category: { id, name }`, `technician: { id, name } | null` et `created_at` en ISO 8601 UTC. Catégorie et technicien sont préchargés ; aucun email, description ou profil complet n’est exposé.
+
+React appelle cet endpoint via le client Axios partagé et les cookies existants. Chaque arrivée sur `/dashboard` recharge les données ; le bouton Actualiser permet une lecture manuelle, sans polling. Les réponses obsolètes sont annulées/ignorées et les données sont isolées par identité, rôle et activation. Une erreur affiche Réessayer, sans faux compteurs à zéro et sans conservation de données dans localStorage. Les cinq cartes ouvrent `/tickets`, puis `/tickets?status=open`, `in_progress`, `resolved` ou `closed` ; chaque ticket récent ouvre son détail. Les dates sont affichées en Africa/Casablanca.
+
+Voir [la recette du dashboard et du MVP](recette.md) pour les vérifications exécutées et les contrôles restants.
+
 ## Authentification
 
 | Méthode | Endpoint | Accès / réponse |

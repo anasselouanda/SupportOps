@@ -1,24 +1,39 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CircleAlert, LifeBuoy, LoaderCircle, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { CircleAlert, LifeBuoy, LoaderCircle, LogOut } from "lucide-react";
 import { useAuth } from "../auth/useAuth";
 import { getAuthError } from "../components/authErrors";
 import { roleLabel } from "../auth/roles";
+import DashboardContent from "../dashboard/DashboardContent";
+import useDashboardData from "../dashboard/useDashboardData";
+import "../tickets/tickets.css";
+import "../dashboard/dashboard.css";
 
-export default function DashboardPage() {
+function DashboardSession({ user }) {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(null);
+  const logoutLock = useRef(false);
+  const mounted = useRef(true);
+  const dashboard = useDashboardData(user);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   async function handleLogout() {
-    if (pending) return;
+    if (logoutLock.current) return;
+    logoutLock.current = true;
     setPending(true);
     setError(null);
     try {
       await logout();
+      if (!mounted.current) return;
       navigate("/login", { replace: true });
     } catch (logoutError) {
+      if (!mounted.current) return;
       if (logoutError?.response?.status === 401) {
         navigate("/login", { replace: true });
         return;
@@ -29,61 +44,33 @@ export default function DashboardPage() {
           : getAuthError(logoutError).formError,
       );
     } finally {
-      setPending(false);
+      if (mounted.current) {
+        logoutLock.current = false;
+        setPending(false);
+      }
     }
   }
 
-  const name = user?.name || "Utilisateur";
-  const email = user?.email || "—";
-  const initial = name.trim().charAt(0).toLocaleUpperCase() || "U";
-
   return (
     <div className="dashboard-page">
-      <header className="dashboard-header">
-        <div className="auth-brand auth-brand-dark">
+      <a className="dashboard-overview-skip" href="#dashboard-main">Aller au contenu</a>
+      <header className="dashboard-header dashboard-overview-header">
+        <Link className="auth-brand auth-brand-dark" to="/dashboard">
           <span className="auth-brand-mark" aria-hidden="true">
             <LifeBuoy size={22} strokeWidth={2.2} />
           </span>
           <span>SupportOps</span>
-        </div>
+        </Link>
         <nav className="dashboard-nav" aria-label="Navigation principale">
-          <span className="dashboard-header-label">Espace personnel</span>
+          <Link to="/dashboard" aria-current="page">Tableau de bord</Link>
           <Link to="/tickets">Tickets</Link>
           <Link to="/tickets/new">Nouveau ticket</Link>
           {user?.role === "admin" && user.is_active && <Link to="/admin/users">Utilisateurs</Link>}
         </nav>
       </header>
 
-      <main className="dashboard-main">
-        <div className="dashboard-intro">
-          <span className="auth-eyebrow">Tableau de bord</span>
-          <h1>Bienvenue, {name}</h1>
-          <p>Vous êtes connecté à votre espace SupportOps.</p>
-        </div>
-
-        <section className="dashboard-card" aria-labelledby="account-title">
-          <div className="dashboard-card-top">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              <UserRound size={22} />
-            </div>
-            <div>
-              <h2 id="account-title">Votre compte</h2>
-              <p>Informations de votre session</p>
-            </div>
-          </div>
-          <div className="dashboard-person">
-            <span className="dashboard-avatar" aria-hidden="true">{initial}</span>
-            <div className="dashboard-person-details">
-              <strong>{name}</strong>
-              <span><Mail size={16} aria-hidden="true" /> {email}</span>
-              <span>Rôle : {roleLabel(user?.role)}</span>
-            </div>
-          </div>
-          <div className="dashboard-status">
-            <ShieldCheck size={19} aria-hidden="true" />
-            <span>Votre session est active.</span>
-          </div>
-        </section>
+      <main className="dashboard-main dashboard-overview-main" id="dashboard-main" tabIndex={-1}>
+        <DashboardContent user={user} data={dashboard.data} pending={dashboard.pending} error={dashboard.error} onRefresh={dashboard.refresh} />
 
         {error && (
           <div className="auth-alert dashboard-alert" role="alert">
@@ -92,11 +79,20 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <button className="dashboard-logout" type="button" onClick={handleLogout} disabled={pending}>
-          {pending ? <LoaderCircle className="auth-spinner" size={18} aria-hidden="true" /> : <LogOut size={18} aria-hidden="true" />}
-          <span>{pending ? "Déconnexion en cours…" : "Se déconnecter"}</span>
-        </button>
+        <footer className="dashboard-overview-footer">
+          <p>Votre rôle : {roleLabel(user?.role)}.</p>
+          <button className="dashboard-logout" type="button" onClick={handleLogout} disabled={pending}>
+            {pending ? <LoaderCircle className="auth-spinner" size={18} aria-hidden="true" /> : <LogOut size={18} aria-hidden="true" />}
+            <span>{pending ? "Déconnexion en cours…" : "Se déconnecter"}</span>
+          </button>
+        </footer>
       </main>
     </div>
   );
+}
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const identity = user ? `${user.id}:${user.role}:${Boolean(user.is_active)}` : "guest";
+  return <DashboardSession key={identity} user={user} />;
 }
