@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -40,6 +41,24 @@ class User extends Authenticatable
             'role' => 'string',
             'is_active' => 'boolean',
         ];
+    }
+
+    /** @return HasMany<Ticket, $this> */
+    public function requestedTickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class, 'requester_id');
+    }
+
+    /** @return HasMany<Ticket, $this> */
+    public function assignedTickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class, 'technician_id');
+    }
+
+    /** @return HasMany<TicketEvent, $this> */
+    public function ticketEvents(): HasMany
+    {
+        return $this->hasMany(TicketEvent::class, 'actor_id');
     }
 
     public function isActiveAdministrator(): bool

@@ -1,138 +1,160 @@
-# Progression SupportOps — rôles et permissions
+# Progression SupportOps — intégration et API tickets
 
-Branche de travail : `feature/roles-permissions`, créée depuis `main` après autorisation explicite. Le checkout `main` du Bureau reste attaché à son worktree. Le travail applicatif est réalisé dans `C:\Users\admin\.codex\worktrees\cd39\SupportOps`.
+Intervention du 18 octobre 2026 dans `C:\Users\admin\Desktop\SupportOps`. Branche active : `feature/tickets-api`. Les changements de tickets restent non committés et non poussés pour revue.
 
-## Répartition des agents
+## Sauvegarde et audit
 
-- Backend : modèle User, migrations additives, policy, middleware d'activation, Form Requests, contrôleur/service administratifs et commande du premier administrateur.
-- Frontend : rôles du dashboard, navigation, page et formulaires des utilisateurs, suppression de l'inscription et gestion des erreurs de session.
-- Tests : isolation de base avant migrations, régression de l'authentification, permissions, validation, désactivation, migrations et commande.
-- Coordinateur : branche, setup/dépendances, routes Laravel/React, configuration PHPUnit, contrat API, intégration, revue et documentation.
+Sauvegarde locale hors dépôt : `C:\Users\admin\Desktop\SupportOps-backups\20261018-122551`.
 
-Les fichiers sont attribués exclusivement ; les routes, configurations et documents restent au coordinateur. Aucun commit ni push prévu.
+- `SupportOps.bundle` : toutes les références avant intégration ; `git bundle verify` réussi, historique complet.
+- `roles-staged.patch` : patch binaire initial vide (index initial vide).
+- `roles-unstaged.patch` : modifications suivies du worktree rôles.
+- `roles-untracked/` : les 27 fichiers non suivis utiles avec chemins relatifs ; empreintes SHA-256 source/copie identiques.
+- `untracked-inventory.txt`, `branches-sha.txt` : inventaires initiaux.
+- `after-integration.bundle` : copie supplémentaire après commit, vérifiée avant suppression.
+- `integration-inventory.txt` : SHA intégré/poussé, suppression et création de branche.
 
-## Fonctionnement
+Les dépendances et artefacts générés sont exclus des copies. Aucun secret, `.env` ou dump ajouté au commit. Aucune opération sur la base de développement.
 
-L'authentification vérifie l'identité grâce à l'email et au mot de passe, puis conserve la session Sanctum. L'autorisation décide quelles actions le rôle peut effectuer : seuls les administrateurs actifs gèrent les comptes. La désactivation interdit une nouvelle connexion et bloque une session déjà ouverte dès sa prochaine requête protégée, avec invalidation de session et code `account_disabled`.
+L’audit a trouvé `main` propre dans le dépôt Desktop et le travail rôles non committé dans `C:\Users\admin\.codex\worktrees\cd39\SupportOps`. Le worktree initial de ce chat (`1ac2`) était détaché et propre. Instructions `backend/AGENTS.md` lues ; aucun `.ai/rules` applicable. Le skill `testing-best-practices` référencé est introuvable dans les sources disponibles ; les tests suivent les conventions PHPUnit existantes.
 
-Le contrat détaillé se trouve dans [api.md](api.md). Aucun développement de tickets ou de matériel, suppression de compte ou réinitialisation de mot de passe n'est prévu dans cette étape.
+`origin` vérifié : `https://github.com/anasselouanda/SupportOps.git`. Toutes les commandes Git sont exécutées séquentiellement par le coordinateur. L’audit hors sandbox a initialement nécessité une autorisation ; après reprise avec accès disponible, aucune erreur de fusion, push ou suppression.
 
-## Environnement et sécurité des tests
+## Intégration des rôles
 
-PHP du PATH initial : 8.0.30, incompatible avec ce projet. PHP compatible utilisé : `C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe`, version 8.3.30. Node 22.16.0 et npm 10.9.2 sont disponibles.
+45 fichiers pertinents inspectés et indexés par chemins explicites, sans `git add .`. Commit : `1bbdab541f7fb0521c5b9a5387dabc163c5d325f`, `feat: enforce account roles, activation and administrator permissions`.
 
-`backend/AGENTS.md` exigeait Laravel Boost : dépendance de développement installée, consignes générées pour Codex. Les packages applicatifs existants ont conservé leurs versions verrouillées. L'autoload optimisé Composer est resté bloqué ; un autoload normal a été généré en restaurant ensuite la configuration originale. Les permissions Windows ont nécessité des commandes hors sandbox pour les dépendances et le cache local.
+Après `git fetch origin`, aucune version distante de `feature/roles-permissions` n’existait. `git merge --ff-only origin/main`, puis `git merge --ff-only feature/roles-permissions` dans `main` ont réussi. Aucun conflit.
 
-Aucun `.env` n'est modifié. Aucune migration ni création d'administrateur n'est exécutée sur la base de développement. PHPUnit force `testing`, SQLite `:memory:`, cache/session `array`, et une URL de base vide. Son bootstrap refuse une configuration mise en cache ; TestCase vérifie la configuration effective avant `RefreshDatabase`. Une clé d'application aléatoire est générée uniquement dans le processus de test si nécessaire.
+Contrôles après intégration dans Desktop :
 
-## Contrôles
+- PHPUnit, PHP 8.3.30, SQLite `:memory:` : **82 tests, 375 assertions réussis**.
+- `npm.cmd run lint` et `npm.cmd run build` : réussis.
+- `php artisan route:list --path=api --except-vendor --json --no-interaction` : sept routes avant tickets, auth/health conservés et inscription publique absente.
+- `git diff --cached --check` : réussi avant commit.
 
-- Avant les modifications métier : tests d'authentification existants réussis, 15 tests et 59 assertions.
-- Frontend avant modifications : `npm run lint` et `npm run build` réussis.
-- Formatage final : `php vendor/bin/pint --dirty --format agent`, réussi, uniquement fichiers PHP touchés.
-- Suite complète après formatage : `php vendor/phpunit/phpunit/phpunit --colors=never`, **82 tests, 375 assertions, tous réussis** (9,697 s), SQLite en mémoire.
-- Frontend final : `npm run lint` et `npm run build`, réussis après correction des réponses de session obsolètes (build 2,79 s).
-- Vérification frontend en mémoire avec le code AuthProvider réel, hooks simulés et adaptateur Axios contrôlé : anciennes 401/désactivations après nouvelle session, 403 ordinaire, mauvais identifiants, notification et nettoyage des intercepteurs réussis. Aucun test navigateur revendiqué.
-- Routes : `php artisan route:list --path=api --except-vendor --json`, réussi ; sept routes API présentes, inscription publique absente.
-- `git diff --check`, réussi. Avertissement de conversion LF/CRLF sur AuthProvider lié à Git, sans erreur de whitespace.
-- Parcours navigateur avec cookies/CSRF réels : **non vérifiés**.
-- Concurrence avec deux connexions MySQL réelles : **non vérifiée** ; les tests isolés SQLite ne valident pas le comportement des verrous MySQL.
+`git push origin main` réussi. `main`, `origin/main` et la référence GitHub (`git ls-remote --heads origin`) désignent `1bbdab541f7fb0521c5b9a5387dabc163c5d325f`.
 
-Les contrôles ont détecté deux défauts corrigés avant validation finale : un nom de méthode de la commande Artisan entrait en conflit avec Laravel, et le garde Sanctum conservait un utilisateur en mémoire après logout/invalidation. Les deux chemins d'invalidation nettoient désormais ce garde. Les anciennes réponses Axios ne peuvent plus effacer une connexion plus récente.
+## Nettoyage
 
-Une première suite a révélé onze échecs : six comparaisons de snapshots de tests ont été corrigées pour comparer les valeurs relues de la base, et cinq régressions de session ont conduit à la correction Sanctum ci-dessus. Les résultats finaux sont ceux des 82 tests réussis. Des revues automatiques de permissions ont échoué temporairement pour capacité du modèle ; les commandes concernées ont ensuite été autorisées et exécutées via cette même revue.
+Branche locale supprimée : `feature/roles-permissions`, SHA `1bbdab541f7fb0521c5b9a5387dabc163c5d325f`. Sauvegardes vérifiées, push réussi, contrôle `git merge-base --is-ancestor feature/roles-permissions origin/main` réussi. Son worktree propre a été détaché sur `origin/main`, puis suppression avec `git branch -d`.
+
+Aucune branche distante à supprimer : GitHub annonçait uniquement `main`. `origin/HEAD` préservée. `git fetch --prune origin` réussi ; seul `main` restait localement avant création de `feature/tickets-api` depuis `main` propre et synchronisée. Branche active confirmée. Les anciens worktrees détachés sont préservés. Aucune branche non fusionnée supplémentaire à conserver.
+
+## Répartition des trois agents
+
+- Backend : modèles et relations, trois migrations, Form Requests, contrôleurs, API Resources, service transactionnel.
+- Tests : `tests/Feature/Tickets/` et factories Category, Ticket, TicketEvent.
+- Revue : lecture seule des permissions et régressions.
+- Coordinateur : seul opérateur Git, routes, TicketPolicy, documentation et intégration ; corrections finales après fin des éditions des agents.
+
+Propriété exclusive des fichiers, aucune édition simultanée. Contrat fixé avant délégation, détaillé dans [api.md](api.md). Périmètre limité à catégories, création, liste et détail. Aucun frontend tickets, affectation, transition, commentaire, matériel ou statistiques.
+
+Les tickets ont une référence unique `TKT-<ULID>`, un demandeur issu de la session, un technicien nullable, une catégorie, titre/description/priorité/statut et dates. Les nouveaux tickets sont ouverts et non assignés. Une transaction crée le ticket et son événement. Le scope `visibleTo` partagé protège listes et détails : employé propriétaire, technicien propriétaire ou assigné, administrateur tous. TicketPolicy refuse les détails extérieurs en 404. Recherche groupée et profils limités à `id`/`name`, relations préchargées.
+
+## Vérifications tickets
+
+Résultats définitifs :
+
+- Agent backend : Pint ciblé réussi et syntaxe PHP valide sur ses 14 fichiers.
+- Agent tests : `php artisan test --compact --no-ansi tests/Feature/Tickets`, **108 tests, 575 assertions réussis**, 11,53 s après formatage ciblé.
+- Coordinateur : `php vendor/bin/pint --dirty --format agent`, réussi sur les fichiers PHP concernés uniquement.
+- Coordinateur : `php vendor/phpunit/phpunit/phpunit --colors=never`, **190 tests, 950 assertions réussis**, 18,223 s après le formatage final. Cette suite inclut les 108 cas tickets et les 82 cas de régression existants.
+- Routes API : **11 routes**, dont les quatre nouvelles routes protégées par `auth:sanctum` et `EnsureUserIsActive`. Authentification, administration et health conservés.
+- Syntaxe PHP de TicketPolicy et des routes : valide.
+- `git diff --check` : réussi ; seuls des avertissements LF/CRLF liés à la configuration Git locale sont affichés.
+- Revue indépendante en lecture seule : aucun défaut bloquant identifié. Une attente de test rôle inconnu a été corrigée avant son exécution : un détail hors périmètre répond 404.
+
+Couverture : accès anonyme, désactivation avec session web et invalidation, changements de rôle avec garde obsolète, création pour chaque rôle, bornes de longueur, priorité par défaut, refus des champs sensibles même nuls, demandeur de session, références distinctes et unicité en base, événement initial et rollback après échec simulé, acteur/catégorie revérifiés, périmètres liste/détail et policy 404 directe, recherche titre/référence et caractères `%`, `_`, `!` littéraux, filtres sans fuite, pagination 15 par défaut et bornes 1–100, tri stable, catégories actives uniquement, profils minimaux et requêtes sans N+1.
+
+Les agents ont uniquement modifié leurs fichiers attribués ; le coordinateur n’a eu aucune correction métier à apporter après leur livraison. Aucun nouveau compte temporaire conservé.
+
+Isolation vérifiée avant tests : `phpunit.xml` force `testing`, SQLite `:memory:`, DB_URL vide, cache/session `array`. `tests/bootstrap.php` refuse les écarts et la configuration en cache ; TestCase contrôle la configuration effective avant RefreshDatabase. Aucun `.env` modifié.
+
+PHP compatible : `C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe`, version 8.3.30 ; PHP 8.0 du PATH initial incompatible. Versions installées contrôlées dans le worktree rôles : Laravel 13.34.0, Sanctum 4.3.3, PHPUnit 12.5.37. `PAO_DISABLE=1` désactive seulement la capture de sortie Pao ; deux exécutions silencieuses ont été interrompues puis remplacées par une exécution achevée avec sortie visible.
 
 ## Commandes locales restantes
 
-Utiliser PHP 8.3 ou plus dans le terminal, par exemple :
-
 ```powershell
 $env:PATH = 'C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64;' + $env:PATH
-```
-
-Depuis `backend` sur cette branche, avec votre configuration MySQL locale existante :
-
-```powershell
+cd C:\Users\admin\Desktop\SupportOps\backend
 php artisan migrate
+# Uniquement si aucun administrateur n’existe déjà :
 php artisan supportops:create-admin
 ```
 
-La seconde commande est interactive ; le mot de passe est masqué et confirmé. Ne pas utiliser `migrate:fresh` ou `db:wipe`. Les migrations sont additives, conservent les utilisateurs et les rôles renseignés. Leur retour arrière ne supprime pas les colonnes ajoutées ni les données ; prévoir un traitement explicite si un retrait du schéma devient nécessaire.
+Aucune de ces opérations exécutée sur la base de développement. Aucun seeder ni compte temporaire créé. Aucune catégorie métier inventée : des catégories actives devront exister en base pour créer des tickets, sans endpoint de gestion inclus. Aucun `migrate:fresh` sur la base de développement. Les migrations sont additives ; les données existantes sont conservées lors de leur application.
 
-Pour relancer les contrôles dans ce worktree :
+Pour reproduire les contrôles isolés :
 
 ```powershell
-# backend, configuration PHPUnit isolée et non mise en cache
-php vendor/phpunit/phpunit/phpunit
-# frontend
-npm run lint
-npm run build
+$env:PAO_DISABLE = '1'
+php vendor/phpunit/phpunit/phpunit --colors=never
+php artisan route:list --path=api --except-vendor --json --no-interaction
 ```
 
-## Checklist locale navigateur et MySQL
+Parcours navigateur réel avec cookies/CSRF, concurrence MySQL multi-connexion et application des migrations sur MySQL : non effectués. SQLite ne valide pas tous les comportements des verrous MySQL.
 
-- Se connecter avec chacun des trois rôles actifs ; vérifier le rôle sur le dashboard.
-- Vérifier que seuls les administrateurs voient « Utilisateurs » ; l'employé et le technicien voient « Accès interdit » sur `/admin/users` et restent connectés.
-- Créer un compte, vérifier les erreurs par champ, la liste paginée et la navigation clavier/mobile.
-- Modifier nom/email/rôle/activation ; vérifier les confirmations sensibles et le profil courant après une modification de soi.
-- Désactiver un compte depuis une autre session ; sa prochaine requête protégée doit l'envoyer vers la connexion avec le message dédié. Vérifier qu'il ne peut plus se connecter.
-- Refuser la désactivation ou rétrogradation du dernier administrateur actif.
-- Sur une base MySQL de test distincte, envoyer simultanément des requêtes qui tentent de retirer les derniers administrateurs actifs ; vérifier qu'au moins un subsiste après les transactions.
-- Vérifier `/register` vers `/login`, `POST /api/register` inaccessible, `/api/health` public et déconnexion effective.
-- Couper le réseau, vérifier les erreurs et les boutons de réessai ; restaurer le réseau puis réessayer.
-- Vérifier le flux réel cookie CSRF/Sanctum entre les origines Laravel et Vite configurées localement.
+## Parcours d’une requête
 
-## Fichiers modifiés
+Requête avec session et CSRF → authentification/activation → autorisation et validation par Form Request → transaction, catégorie revérifiée → ticket et événement en base → API Resource et JSON 201. Une validation invalide répond 422 avant écriture ; l’échec transactionnel annule toute création partielle. Pour les lectures, le scope autorisé et TicketPolicy précèdent la réponse, sans transaction d’écriture.
 
-Backend : `app/Models/User.php`, `app/Http/Controllers/Api/AuthController.php`, `app/Http/Controllers/Api/Admin/UserController.php`, `app/Http/Middleware/EnsureUserIsActive.php`, les trois `app/Http/Requests/Admin/*User*Request.php`, `app/Policies/UserPolicy.php`, `app/Services/AdminUserService.php`, `app/Console/Commands/CreateInitialAdmin.php`, `database/factories/UserFactory.php`, les deux migrations du 5 octobre et `routes/api.php`.
+## Fichiers et état final
 
-Tests : `tests/bootstrap.php`, `tests/TestCase.php`, `tests/Feature/Auth/AuthenticationTest.php`, `AccountActivationTest.php`, les tests `Admin/ListUsersTest.php`, `StoreUserTest.php`, `UpdateUserTest.php`, `Console/CreateAdminTest.php`, `Database/UserAccessMigrationTest.php`, `Policies/UserPolicyTest.php`, `Services/AdminUserServiceTest.php`. Configuration/setup : `phpunit.xml`, `composer.json`, `composer.lock`, `boost.json`, `AGENTS.md` généré.
-
-Frontend : `src/App.jsx`, `src/api/auth.js`, `src/api/users.js`, `src/auth/AuthProvider.jsx`, `src/auth/roles.js`, `src/auth.css`, `src/components/authErrors.js`, `src/components/UserForm.jsx`, `src/pages/LoginPage.jsx`, `DashboardPage.jsx`, `AdminUsersPage.jsx`, `src/routes/AdminRoute.jsx`. `RegisterPage.jsx` supprimée. Documentation : `docs/api.md` et ce rapport.
-
-## État Git final
-
-Branche active confirmée : `feature/roles-permissions`. Aucun commit ni push. Résultat de `git status --short` :
+25 fichiers concernés (4 modifiés et 21 nouveaux), aucun changement frontend ou de dépendance pour cette étape :
 
 ```text
- M backend/AGENTS.md
- M backend/app/Http/Controllers/Api/AuthController.php
- M backend/app/Models/User.php
- M backend/composer.json
- M backend/composer.lock
- M backend/database/factories/UserFactory.php
- M backend/phpunit.xml
- M backend/routes/api.php
- M backend/tests/Feature/Auth/AuthenticationTest.php
- M backend/tests/TestCase.php
- M frontend/src/App.jsx
- M frontend/src/api/auth.js
- M frontend/src/auth.css
- M frontend/src/auth/AuthProvider.jsx
- M frontend/src/components/authErrors.js
- M frontend/src/pages/DashboardPage.jsx
- M frontend/src/pages/LoginPage.jsx
- D frontend/src/pages/RegisterPage.jsx
-?? backend/app/Console/
-?? backend/app/Http/Controllers/Api/Admin/
-?? backend/app/Http/Middleware/
-?? backend/app/Http/Requests/
-?? backend/app/Policies/
-?? backend/app/Services/
-?? backend/boost.json
-?? backend/database/migrations/2026_10_05_120847_add_role_and_is_active_to_users_table.php
-?? backend/database/migrations/2026_10_05_120849_create_user_administration_locks_table.php
-?? backend/tests/Feature/Admin/
-?? backend/tests/Feature/Auth/AccountActivationTest.php
-?? backend/tests/Feature/Console/
-?? backend/tests/Feature/Database/
-?? backend/tests/Feature/Policies/
-?? backend/tests/Feature/Services/
-?? backend/tests/bootstrap.php
-?? docs/
-?? frontend/src/api/users.js
-?? frontend/src/auth/roles.js
-?? frontend/src/components/UserForm.jsx
-?? frontend/src/pages/AdminUsersPage.jsx
-?? frontend/src/routes/AdminRoute.jsx
+backend/app/Models/User.php
+backend/routes/api.php
+docs/api.md
+docs/progression.md
+backend/app/Http/Controllers/Api/CategoryController.php
+backend/app/Http/Controllers/Api/TicketController.php
+backend/app/Http/Requests/Tickets/ListTicketsRequest.php
+backend/app/Http/Requests/Tickets/StoreTicketRequest.php
+backend/app/Http/Resources/CategoryResource.php
+backend/app/Http/Resources/TicketResource.php
+backend/app/Models/Category.php
+backend/app/Models/Ticket.php
+backend/app/Models/TicketEvent.php
+backend/app/Policies/TicketPolicy.php
+backend/app/Services/TicketService.php
+backend/database/factories/CategoryFactory.php
+backend/database/factories/TicketEventFactory.php
+backend/database/factories/TicketFactory.php
+backend/database/migrations/2026_10_18_123225_create_categories_table.php
+backend/database/migrations/2026_10_18_123226_create_tickets_table.php
+backend/database/migrations/2026_10_18_123227_create_ticket_events_table.php
+backend/tests/Feature/Tickets/ListTicketsTest.php
+backend/tests/Feature/Tickets/StoreTicketTest.php
+backend/tests/Feature/Tickets/TicketAccessTest.php
+backend/tests/Feature/Tickets/TicketModelTest.php
 ```
+
+Branches finales : `main` et `feature/tickets-api` ; à distance, `origin/main` seulement. Les deux branches locales et `origin/main` pointent sur le commit rôles `1bbdab541f7fb0521c5b9a5387dabc163c5d325f`. Les tickets ne sont ni indexés, ni committés, ni poussés. Sortie de `git status --short --branch` dans le dépôt Desktop :
+
+```text
+## feature/tickets-api
+ M backend/app/Models/User.php
+ M backend/routes/api.php
+ M docs/api.md
+ M docs/progression.md
+?? backend/app/Http/Controllers/Api/CategoryController.php
+?? backend/app/Http/Controllers/Api/TicketController.php
+?? backend/app/Http/Requests/Tickets/
+?? backend/app/Http/Resources/
+?? backend/app/Models/Category.php
+?? backend/app/Models/Ticket.php
+?? backend/app/Models/TicketEvent.php
+?? backend/app/Policies/TicketPolicy.php
+?? backend/app/Services/TicketService.php
+?? backend/database/factories/CategoryFactory.php
+?? backend/database/factories/TicketEventFactory.php
+?? backend/database/factories/TicketFactory.php
+?? backend/database/migrations/2026_10_18_123225_create_categories_table.php
+?? backend/database/migrations/2026_10_18_123226_create_tickets_table.php
+?? backend/database/migrations/2026_10_18_123227_create_ticket_events_table.php
+?? backend/tests/Feature/Tickets/
+```
+
+Verdict : implémentation et régressions validées sur la base isolée, prête pour revue locale. Application des migrations et vérification réelle MySQL/cookies à effectuer localement ; aucun commit ni push des nouveaux développements.

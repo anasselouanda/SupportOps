@@ -59,3 +59,61 @@ php artisan supportops:create-admin
 ```
 
 La commande exige un terminal interactif, demande nom, email et mot de passe masqué avec confirmation, puis hache le mot de passe. Elle refuse un email déjà utilisé ou l'existence de tout administrateur, même inactif. Aucun mot de passe par défaut n'est fourni. Elle n'est pas exécutée sur la base de développement par les agents.
+
+## Tickets — contrat v1
+
+Toutes les routes suivantes exigent une session Sanctum et un compte actif. Un invité reçoit 401 ; un compte désactivé reçoit 403 avec `code: "account_disabled"`, puis sa session est invalidée.
+
+| Méthode | Endpoint | Succès |
+| --- | --- | --- |
+| GET | `/api/v1/categories` | 200 `{ data: [{ id, name }] }`, catégories actives, triées par nom |
+| POST | `/api/v1/tickets` | 201 `{ data: ticket }` |
+| GET | `/api/v1/tickets` | 200 `{ data: [ticket], links, meta }` |
+| GET | `/api/v1/tickets/{ticket}` | 200 `{ data: ticket }`, identifiant numérique |
+
+### Créer un ticket
+
+```json
+{
+  "title": "Connexion imprimante impossible",
+  "description": "L’imprimante du bureau ne répond plus depuis ce matin.",
+  "category_id": 1,
+  "priority": "normal"
+}
+```
+
+`category_id` doit correspondre à une catégorie active déjà présente. Le titre contient 3 à 255 caractères et la description 10 à 10 000 caractères. `priority` accepte `low`, `normal`, `high`, `urgent` et vaut `normal` si omise ; une valeur `null` est invalide. Toute clé supplémentaire reçoit 422, y compris demandeur, technicien, statut, référence, identifiant et dates internes.
+
+Le serveur prend le demandeur dans la session, fixe `status` à `open` et laisse le technicien à `null`. La référence `TKT-<ULID>` est générée côté serveur et protégée par une contrainte unique en base. Une transaction crée le ticket et son événement `created` (acteur, date et métadonnées initiales) ; l’échec de l’une des écritures annule l’ensemble. La catégorie est revérifiée sous verrou dans cette transaction.
+
+### Consulter et rechercher
+
+| Rôle | Tickets visibles |
+| --- | --- |
+| `employee` | Créés par l’utilisateur courant |
+| `technician` | Créés par lui ou assignés à lui |
+| `admin` | Tous |
+
+La liste et `TicketPolicy` utilisent le même filtrage `visibleTo`. Un détail hors périmètre et un identifiant inexistant répondent 404. Aucune opération d’affectation ou de transition n’est disponible dans cette étape.
+
+Paramètres facultatifs de liste :
+
+| Paramètre | Validation / défaut |
+| --- | --- |
+| `search` | Texte, 255 caractères maximum, recherche sur titre ou référence ; `%` et `_` sont littéraux |
+| `status` | `open`, `in_progress`, `resolved`, `closed` |
+| `priority` | `low`, `normal`, `high`, `urgent` |
+| `page` | Entier, minimum 1 ; défaut 1 |
+| `per_page` | Entier, 1 à 100 ; défaut 15 |
+
+Une valeur invalide ou une clé inconnue reçoit 422 avec `{ message, errors }`. Les conditions de recherche sont groupées à l’intérieur du périmètre autorisé. Le tri est décroissant sur `created_at`, puis sur `id` pour départager les dates identiques. Les métadonnées standard Laravel sont dans `meta` (`current_page`, `last_page`, `per_page`, `total`, etc.) et les liens dans `links`.
+
+La ressource ticket expose `id`, `reference`, `title`, `description`, `priority`, `status`, `category: { id, name }`, `requester: { id, name }`, `technician: { id, name } | null`, `created_at`, `updated_at`, `resolved_at`, `closed_at`. Les dates sont sérialisées en ISO 8601 ; les deux dernières sont nulles à la création. Les relations sont chargées à l’avance, sans requête par ticket. Aucun email, rôle, état du compte, mot de passe, token ou événement interne n’est exposé par cette ressource.
+
+### Parcours d’une création
+
+Requête avec cookie et CSRF → authentification et activation → autorisation `TicketPolicy` et validation du Form Request → transaction avec vérification de catégorie → insertions du ticket et de l’événement en base → sérialisation par API Resource et réponse JSON 201. Une validation invalide répond 422 avant l’écriture ; une erreur de transaction ne laisse pas de ticket partiel.
+
+### Préparation locale
+
+Depuis `backend`, avec PHP 8.3 ou plus et votre configuration MySQL habituelle : `php artisan migrate`. Cette commande reste à exécuter localement : aucune migration ni aucun seeder n’a été lancé sur la base de développement pendant cette intervention. Les migrations ajoutent les trois tables et leurs contraintes ; elles ne modifient pas les données des tables existantes. Aucune catégorie métier ni donnée de démonstration n’est insérée automatiquement. Il faut disposer de catégories actives dans la base pour créer des tickets ; aucun endpoint de gestion des catégories n’est inclus.
