@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AuthField from "./AuthField";
 import { getAuthError } from "./authErrors";
 import { ROLES, roleLabel } from "../auth/roles";
 import { createUser, updateUser } from "../api/users";
 
-export default function UserForm({ account, onSaved, onCancel }) {
+export default function UserForm({ account, onSaved, onCancel, busy = false, onBeginSave, onEndSave }) {
   const editing = Boolean(account);
   const [form, setForm] = useState({
     name: account?.name ?? "",
@@ -17,6 +17,14 @@ export default function UserForm({ account, onSaved, onCancel }) {
   const [errors, setErrors] = useState({});
   const [error, setError] = useState(null);
   const [pending, setPending] = useState(false);
+  const submitting = useRef(false);
+  const mounted = useRef(false);
+  const disabled = pending || busy;
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   function updateField(event) {
     const { name, value, type, checked } = event.target;
@@ -27,13 +35,20 @@ export default function UserForm({ account, onSaved, onCancel }) {
 
   async function submit(event) {
     event.preventDefault();
-    if (pending) return;
+    if (!mounted.current || submitting.current || busy) return;
     const sensitive = editing
       ? form.email !== account.email || form.role !== account.role || form.is_active !== account.is_active
       : form.role === "admin" || !form.is_active;
     if (sensitive && !window.confirm(
       `${editing ? "Confirmer les changements pour" : "Confirmer la création de"} ${form.name || form.email} ?\nE-mail de connexion : ${form.email}.\nRôle : ${roleLabel(form.role)}. Compte ${form.is_active ? "actif" : "désactivé"}.\nUne désactivation coupe l’accès ; un changement de rôle modifie les permissions.`,
     )) return;
+    if (!mounted.current) return;
+    submitting.current = true;
+    const token = onBeginSave?.();
+    if (onBeginSave && !token) {
+      submitting.current = false;
+      return;
+    }
     setPending(true);
     setErrors({});
     setError(null);
@@ -42,14 +57,18 @@ export default function UserForm({ account, onSaved, onCancel }) {
       const saved = editing
         ? await updateUser(account.id, payload)
         : await createUser({ ...payload, password: form.password, password_confirmation: form.password_confirmation });
+      if (!mounted.current) return;
       setForm((current) => ({ ...current, password: "", password_confirmation: "" }));
-      await onSaved(saved, editing);
+      await onSaved(saved, editing, token);
     } catch (failure) {
+      if (!mounted.current) return;
       const details = getAuthError(failure);
       setErrors(details.fieldErrors);
       setError(details.formError);
     } finally {
-      setPending(false);
+      submitting.current = false;
+      onEndSave?.(token);
+      if (mounted.current) setPending(false);
     }
   }
 
@@ -58,8 +77,8 @@ export default function UserForm({ account, onSaved, onCancel }) {
       <h2 id="user-form-title">{editing ? "Modifier le compte" : "Créer un compte"}</h2>
       <p className="admin-help">{editing ? `Compte de ${account.name}` : "Les comptes sont créés par un administrateur."}</p>
       {error && <p className="auth-alert" role="alert">{error} Vous pouvez réessayer avec le formulaire.</p>}
-      <form className="auth-form admin-form" onSubmit={submit} noValidate>
-        <fieldset disabled={pending}>
+      <form className="auth-form admin-form" onSubmit={submit} noValidate aria-busy={disabled}>
+        <fieldset disabled={disabled}>
           <legend className="sr-only">Informations du compte</legend>
           <AuthField id="name" label="Nom" value={form.name} onChange={updateField} error={errors.name} autoComplete="name" required maxLength={255} />
           <AuthField id="email" label="Adresse e-mail" type="email" value={form.email} onChange={updateField} error={errors.email} autoComplete="email" required maxLength={255} />
@@ -84,8 +103,8 @@ export default function UserForm({ account, onSaved, onCancel }) {
             <AuthField id="password_confirmation" label="Confirmer le mot de passe" type="password" value={form.password_confirmation} onChange={updateField} error={errors.password_confirmation} autoComplete="new-password" minLength={8} required />
           </>}
         </fieldset>
-        <button className="auth-primary-button" type="submit" disabled={pending}>{pending ? "Enregistrement en cours…" : editing ? "Enregistrer les changements" : "Créer le compte"}</button>
-        {editing && <button className="admin-button" type="button" onClick={onCancel} disabled={pending}>Annuler la modification</button>}
+        <button className="auth-primary-button" type="submit" disabled={disabled}>{disabled ? "Enregistrement en cours…" : editing ? "Enregistrer les changements" : "Créer le compte"}</button>
+        {editing && <button className="admin-button" type="button" onClick={onCancel} disabled={disabled}>Annuler la modification</button>}
       </form>
     </section>
   );

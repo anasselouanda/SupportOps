@@ -10,6 +10,7 @@ use App\Services\TicketService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -109,6 +110,7 @@ class TicketModelTest extends TestCase
     {
         $actor = User::factory()->create();
         $category = Category::factory()->create();
+        $this->actingAs($actor, 'web');
         User::query()->whereKey($actor->id)->update($changes);
 
         try {
@@ -116,11 +118,64 @@ class TicketModelTest extends TestCase
                 'category_id' => $category->id, 'title' => 'Printer problem', 'description' => 'The printer has stopped responding.',
             ]);
             $this->fail('A revoked actor must not create a ticket.');
-        } catch (AuthorizationException $exception) {
-            $this->assertNotEmpty($exception->getMessage());
+        } catch (AuthorizationException|HttpResponseException $exception) {
+            if (isset($changes['role'])) {
+                $this->assertInstanceOf(AuthorizationException::class, $exception);
+                $this->assertNotEmpty($exception->getMessage());
+                $this->assertSame(403, $exception->status() ?? 403);
+                $this->assertAuthenticatedAs($actor, 'web');
+            } else {
+                $this->assertInstanceOf(HttpResponseException::class, $exception);
+                $this->assertSame('account_disabled', $exception->getResponse()->getData(true)['code']);
+            }
         }
 
         $this->assertDatabaseCount('tickets', 0);
         $this->assertDatabaseCount('ticket_events', 0);
+    }
+
+    public static function unavailableSessionActors(): array
+    {
+        return ['deactivated account' => [false], 'deleted account' => [true]];
+    }
+
+    #[DataProvider('unavailableSessionActors')]
+    public function test_creation_invalidates_session_when_locked_actor_is_inactive_or_missing(bool $deleted): void
+    {
+        $actor = User::factory()->create(['password' => 'TestPassword123!']);
+        $category = Category::factory()->create();
+        $this->withHeader('Origin', 'http://127.0.0.1:5173')->postJson('/api/login', [
+            'email' => $actor->email, 'password' => 'TestPassword123!',
+        ])->assertOk();
+        $this->getJson('/api/user')->assertOk();
+        $session = request()->session();
+        $sessionId = $session->getId();
+        $token = $session->token();
+        $session->put('activation_probe', true);
+
+        if ($deleted) {
+            User::query()->whereKey($actor->id)->delete();
+        } else {
+            User::query()->whereKey($actor->id)->update(['is_active' => false]);
+        }
+
+        try {
+            app(TicketService::class)->create($actor, [
+                'category_id' => $category->id, 'title' => 'Printer problem', 'description' => 'The printer has stopped responding.',
+            ]);
+            $this->fail('Creation must reject an actor revoked after the middleware activation check.');
+        } catch (HttpResponseException $exception) {
+            $this->assertSame(403, $exception->getResponse()->getStatusCode());
+            $this->assertSame('account_disabled', $exception->getResponse()->getData(true)['code']);
+        }
+
+        $this->assertGuest('web');
+        $this->assertGuest('sanctum');
+        $this->assertNotSame($sessionId, $session->getId());
+        $this->assertNotSame($token, $session->token());
+        $this->assertFalse($session->has('activation_probe'));
+        $this->assertDatabaseCount('tickets', 0);
+        $this->assertDatabaseCount('ticket_events', 0);
+        $this->getJson('/api/user')->assertUnauthorized();
     }
 }

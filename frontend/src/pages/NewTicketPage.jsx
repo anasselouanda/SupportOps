@@ -15,6 +15,8 @@ export default function NewTicketPage() {
   const [pending, setPending] = useState(false);
   const [errors, setErrors] = useState({});
   const [failure, setFailure] = useState(null);
+  const [uncertainFailure, setUncertainFailure] = useState(null);
+  const awaitingVerification = useRef(false);
   const submitting = useRef(false);
   const requestVersion = useRef(0);
   const mounted = useRef(false);
@@ -54,7 +56,7 @@ export default function NewTicketPage() {
 
   async function submit(event) {
     event.preventDefault();
-    if (submitting.current || !canCreate) return;
+    if (!mounted.current || submitting.current || awaitingVerification.current || !canCreate) return;
     if (!categories.some((category) => String(category.id) === form.category_id)) {
       setErrors((current) => ({ ...current, category_id: "Choisissez une catégorie disponible." }));
       formRef.current?.elements.namedItem("category_id")?.focus();
@@ -72,9 +74,16 @@ export default function NewTicketPage() {
       const details = ticketError(error, { uncertain: true });
       if (details.kind !== "cancelled") {
         setErrors(details.fields ?? {});
-        setFailure({ ...details, uncertain: !error.response || error.response.status >= 500 });
+        if (!error.response || error.response.status >= 500) {
+          awaitingVerification.current = true;
+          setUncertainFailure(details);
+        } else {
+          setFailure(details);
+        }
         const firstField = ["title", "description", "category_id", "priority"].find((field) => details.fields?.[field]);
-        if (firstField) requestAnimationFrame(() => formRef.current?.elements.namedItem(firstField)?.focus());
+        if (firstField) requestAnimationFrame(() => {
+          if (mounted.current) formRef.current?.elements.namedItem(firstField)?.focus();
+        });
       }
     } finally {
       submitting.current = false;
@@ -82,11 +91,18 @@ export default function NewTicketPage() {
     }
   }
 
+  function acknowledgeVerification() {
+    if (!mounted.current || submitting.current || !awaitingVerification.current) return;
+    awaitingVerification.current = false;
+    setUncertainFailure(null);
+  }
+
   return (
     <TicketLayout title="Nouveau ticket" description="Décrivez votre besoin pour permettre une prise en charge efficace.">
       <section className="ticket-create-panel" aria-labelledby="ticket-create-heading">
         <div className="ticket-create-heading"><span className="ticket-create-icon" aria-hidden="true"><Plus size={22} /></span><div><h2 id="ticket-create-heading">Votre demande</h2><p>Tous les champs sont obligatoires.</p></div></div>
-        {failure && <div className="ticket-list-error" role="alert"><CircleAlert size={21} aria-hidden="true" /><div><p>{failure.message}</p>{failure.uncertain && <p>Vérifiez la <Link to="/tickets">liste des tickets</Link> avant de renvoyer votre demande afin d’éviter un doublon.</p>}</div></div>}
+        {failure && <div className="ticket-list-error" role="alert"><CircleAlert size={21} aria-hidden="true" /><div><p>{failure.message}</p></div></div>}
+        {uncertainFailure && <div className="ticket-list-error" role="alert"><CircleAlert size={21} aria-hidden="true" /><div><p>{uncertainFailure.message}</p><p>Vérifiez la <Link to="/tickets" target="_blank" rel="noopener noreferrer">liste des tickets dans un nouvel onglet</Link> afin de conserver votre brouillon. Si votre demande existe déjà, ouvrez ce ticket sans renvoyer le formulaire. Sinon, confirmez votre vérification avant un nouvel envoi.</p><button className="ticket-list-button" type="button" onClick={acknowledgeVerification} disabled={pending}>J’ai vérifié la liste des tickets</button></div></div>}
         <form ref={formRef} onSubmit={submit} noValidate aria-busy={pending}>
           <fieldset className="ticket-create-fields" disabled={pending}>
             <legend className="sr-only">Informations du nouveau ticket</legend>
@@ -104,7 +120,7 @@ export default function NewTicketPage() {
                 {PRIORITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </TicketField>
             </div>
-            <div className="ticket-create-actions"><button className="ticket-list-button" type="button" onClick={() => navigate("/tickets")} disabled={pending}><ArrowLeft size={17} aria-hidden="true" />Retour aux tickets</button><button className="ticket-list-button ticket-list-button-primary" type="submit" disabled={pending || !canCreate}>{pending ? <LoaderCircle className="auth-spinner" size={18} aria-hidden="true" /> : <Plus size={18} aria-hidden="true" />}{pending ? "Création en cours…" : "Créer le ticket"}</button></div>
+            <div className="ticket-create-actions"><button className="ticket-list-button" type="button" onClick={() => navigate("/tickets")} disabled={pending}><ArrowLeft size={17} aria-hidden="true" />Retour aux tickets</button><button className="ticket-list-button ticket-list-button-primary" type="submit" disabled={pending || !canCreate || Boolean(uncertainFailure)}>{pending ? <LoaderCircle className="auth-spinner" size={18} aria-hidden="true" /> : <Plus size={18} aria-hidden="true" />}{pending ? "Création en cours…" : "Créer le ticket"}</button></div>
           </fieldset>
         </form>
       </section>

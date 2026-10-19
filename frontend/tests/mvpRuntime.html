@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SupportOps — régressions React isolées</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f3f6fa; color: #172337; }
+      .runtime-controls { padding: 24px; background: white; border-bottom: 1px solid #cbd5e1; }
+      .runtime-controls h1 { margin-top: 0; font-size: 1.4rem; }
+      .runtime-controls button { padding: 12px 18px; font: inherit; cursor: pointer; }
+      .runtime-controls li { margin: 10px 0; }
+      .runtime-controls [data-status="passed"] { color: #136332; }
+      .runtime-controls [data-status="failed"] { color: #a21919; }
+      #runtime-sandbox { min-height: 240px; padding: 12px; border: 2px dashed #94a3b8; }
+    </style>
+  </head>
+  <body>
+    <section class="runtime-controls" aria-labelledby="runtime-title">
+      <h1 id="runtime-title">Régressions React du MVP</h1>
+      <p>Vrais composants React, navigateur et adaptateur Axios fictif local. Aucune requête Laravel ni écriture en base.</p>
+      <button id="run-regressions" type="button">Exécuter les régressions</button>
+      <p id="runtime-summary" role="status">Prêt : trois scénarios réels ReactDOM, sans données métier.</p>
+      <ol id="runtime-results" aria-label="Résultats des régressions"></ol>
+    </section>
+    <div id="runtime-sandbox" aria-label="Composants réels montés pour les tests"></div>
+    <script type="module" src="/tests/mvpRuntime.jsx"></script>
+  </body>
+</html>

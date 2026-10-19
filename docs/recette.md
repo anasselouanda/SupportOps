@@ -1,5 +1,13 @@
 # Recette SupportOps — dashboard et parcours MVP
 
+## Recontrôle du 19 octobre 2026 avant le module matériel
+
+Les corrections de `feature/mvp-validation` ont été relues : révocation du compte pendant une création de ticket, isolation des réponses entre sessions/rôles, verrouillage d'une sauvegarde administrateur et protection contre le renvoi d'une création au résultat incertain. La suite isolée passe avec **407 tests / 2 074 assertions** ; les **87 tests frontend**, ESLint et le build passent. Les trois scénarios ReactDOM de `tests/mvpRuntime.html` ont été exécutés dans le navigateur et passent.
+
+Une nouvelle base SQLite de recette, créée exclusivement dans un répertoire temporaire `SupportOps-mvp-20261019-200710`, utilise sa propre clé, ses sessions et son stockage. Aucun `.env` ni aucune donnée de développement modifiés. Des comptes fictifs temporaires ont été créés dans cette base uniquement ; leurs secrets ne figurent pas dans ce rapport.
+
+Vérifications connectées réellement observées : connexion employé/technicien/administrateur, dashboards avec périmètres distincts, création d'un ticket employé, commentaire avec auteur, affectation administrateur, démarrage puis résolution avec note par le technicien, clôture par le demandeur et relecture du ticket clos avec ses six événements. Capture hors dépôt : `SupportOps-backups/20261019-200600/mvp-closed-ticket.png`. **43 contrôles HTTP réels passent** avec cookies et CSRF, dont droits, recherche/pagination, réouverture et refus de mutation d'un ticket clos. Les listes de contrôle ci-dessous restent la référence pour les scénarios non rejoués ; ce contrôle ciblé ne vaut pas validation complète de toutes les tailles d'écran ni du déploiement MySQL.
+
 Intervention du 18 octobre 2026. Utiliser exclusivement des comptes et tickets identifiés pour le test. Aucun mot de passe à publier dans les captures ou rapports. Aucune migration ni aucun seeder exécuté sur la base de développement pour cette étape.
 
 ## Indicateurs attendus

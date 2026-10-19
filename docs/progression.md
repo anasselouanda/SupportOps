@@ -1,5 +1,11 @@
 # Progression SupportOps — dashboard connecté
 
+## Reprise MVP du 19 octobre 2026
+
+Relecture des fonctionnalités réellement présentes et des corrections non committées sur `feature/mvp-validation`. Aucun blocage majeur identifié dans l'audit et les scénarios exécutés : **407 tests backend / 2 074 assertions**, **87 tests frontend**, lint/build et **3 régressions ReactDOM navigateur** réussis. La recette connectée ciblée est détaillée dans `recette.md`, avec ses limites explicites.
+
+Avant intégration, sauvegarde hors dépôt `C:\Users\admin\Desktop\SupportOps-backups\20261019-200600` : bundle complet vérifié, patches binaires index/non index, inventaires des références/SHA et copie vérifiée SHA-256 des sept fichiers non suivis. Les références initiales `main`, `origin/main` et `feature/mvp-validation` pointent sur `6e03f30fca519aa8eac34c432597ce6311dfbb37`. Seul le travail MVP validé est autorisé à être committé et poussé ; le futur module matériel doit rester non committé sur `feature/assets-api`.
+
 Intervention du 18 octobre 2026 dans `C:\Users\admin\Desktop\SupportOps`. Branche active : **feature/dashboard**. Les nouveaux changements restent non indexés, non committés et non poussés. Aucun tag ni release v0.1.0 créé.
 
 ## Prérequis et intégration de l’étape précédente

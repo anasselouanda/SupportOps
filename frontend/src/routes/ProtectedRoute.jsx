@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 
@@ -19,5 +20,7 @@ export default function ProtectedRoute({ children }) {
   }
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
 
-  return children ?? <Outlet />;
+  const sessionKey = `${user.id}:${user.role}:${Boolean(user.is_active)}`;
+
+  return <Fragment key={sessionKey}>{children ?? <Outlet />}</Fragment>;
 }

@@ -56,7 +56,7 @@ export function readTicketFilters(params) {
   const status = input.get("status") ?? "";
   const priority = input.get("priority") ?? "";
   return {
-    search: (input.get("search") ?? "").slice(0, 255),
+    search: (input.get("search") ?? "").trim().slice(0, 255),
     status: STATUS_OPTIONS.some((option) => option.value === status) ? status : "",
     priority: PRIORITY_OPTIONS.some((option) => option.value === priority) ? priority : "",
     page: positiveInteger(input.get("page"), 1),

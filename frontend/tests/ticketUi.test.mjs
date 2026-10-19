@@ -91,6 +91,20 @@ test("filters default to first page and fifteen results", () => {
   assert.deepEqual(readTicketFilters(new URLSearchParams()), defaults);
 });
 
+test("whitespace-only search is removed from URL and API filters", () => {
+  const whitespace = " \t\n\u00a0 ";
+  assert.deepEqual(readTicketFilters(new URLSearchParams({ search: whitespace })), defaults);
+  const query = writeTicketFilters({ ...defaults, search: whitespace });
+  assert.equal(query.has("search"), false);
+  assert.equal(query.toString(), "");
+});
+
+test("search is trimmed before its canonical URL round trip", () => {
+  const query = writeTicketFilters({ ...defaults, search: "  Printer network  " });
+  assert.equal(query.get("search"), "Printer network");
+  assert.equal(readTicketFilters(query).search, "Printer network");
+});
+
 test("valid filters survive URL round trip and unknown query fields are removed", () => {
   const filters = { search: "TKT-123 & printer", status: "in_progress", priority: "high", page: 3, per_page: 25 };
   const query = writeTicketFilters({ ...filters, unknown: "secret" });
