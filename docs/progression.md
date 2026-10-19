@@ -1,4 +1,26 @@
-# Progression SupportOps — dashboard connecté
+# Progression SupportOps
+
+## Module matériel backend — 19 octobre 2026
+
+Le travail de `feature/assets-api` est prêt à l'intégration autorisée par la demande suivante de connexion React. **94 tests ciblés / 602 assertions**, puis **501 tests backend / 2 676 assertions** passent sur SQLite `:memory:` explicitement isolé. Pint des seuls fichiers modifiés et routes matériel vérifiés. La recette MVP préalable dépasse la compilation : 407 tests backend, 87 frontend, 3 régressions ReactDOM et 43 contrôles HTTP, parcours navigateur création → commentaire → affectation technicien → résolution → clôture confirmé.
+
+Deux sauvegardes hors dépôt : `SupportOps-backups/20261019-200600` pour le MVP ; `SupportOps-backups/assets-api-20261019-205148` pour l'API matériel, avec bundles vérifiés, patches binaires, références/SHA et 35 fichiers non suivis copiés avec SHA-256 vérifiés. MVP committé en `f41ffce575651a5186b7333114cec1da8c9edf7a`, fusionné en avance rapide et poussé sur main ; ancienne branche supprimée après vérification d'ascendance et bundle post-intégration.
+
+Contributions exclusives : agent Inventaire (modèle/factory/migration assets, validation, service, contrôleur, Resource), Affectations (périodes/factory/migration, service transactionnel, relecture/verrous, requests/actions, Resource), Tests/revue (six fichiers, 94 cas). Coordinateur : AssetPolicy, routes, association aux tickets, sélections paginées, documentation, Git et contrôles séquentiels. Une erreur de type du callback de préchargement ticket a été détectée et corrigée ; les assertions de rollback comparent des instantanés DB stables.
+
+Schéma, droits et états : [assets-workflow.md](assets-workflow.md). Contrat : [api.md](api.md). Aucun écran matériel, pièce jointe, SLA, notification ou export dans cette étape backend. Un état courant fiable repose sur la période sans fin, sans bénéficiaire dupliqué sur assets ; index SQL unique et transaction protègent les ouvertures. Les tickets gardent leur matériel après transfert/retrait, leur résumé ne divulgue aucun nouveau bénéficiaire. Les options ticket et bénéficiaires sont recherchables et paginées côté serveur pour la prochaine interface.
+
+MySQL local était arrêté ; son exécutable installé a été démarré avec sa configuration existante, écoute locale uniquement. `artisan db:show` confirme Laravel → MySQL **8.4.3**, base supportops et tables existantes. Aucune migration/seeder ni écriture de fixtures sur cette base, aucun `.env` modifié. Les tests vérifient l'unicité active et les rollbacks ; la contention simultanée/deadlock entre processus MySQL n'est pas exécutée par cette suite SQLite. Les comptes fictifs MVP étaient exclusivement dans la base temporaire ; le fichier de leurs accès a été supprimé après recette.
+
+Commande locale restante pour installer les trois nouvelles migrations, à exécuter par l'utilisateur quand souhaité (jamais exécutée sur la base de développement pendant cette intervention) :
+
+```powershell
+cd C:\Users\admin\Desktop\SupportOps\backend
+$env:PAO_DISABLE = '1'
+& 'C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe' artisan migrate --no-interaction
+```
+
+## Historique des étapes précédentes
 
 ## Reprise MVP du 19 octobre 2026
 

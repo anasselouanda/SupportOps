@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class TicketService
 {
-    /** @param array{title: string, description: string, category_id: int, priority?: string} $attributes */
+    /** @param array{title: string, description: string, category_id: int, priority?: string, asset_id?: ?int} $attributes */
     public function create(User $actor, array $attributes): Ticket
     {
         return DB::transaction(function () use ($actor, $attributes): Ticket {
@@ -45,11 +45,15 @@ class TicketService
                 throw ValidationException::withMessages(['category_id' => ['La catégorie sélectionnée est indisponible.']]);
             }
 
+            $asset = array_key_exists('asset_id', $attributes)
+                ? app(TicketAssetService::class)->resolve($requester, $attributes['asset_id'] === null ? null : (int) $attributes['asset_id']) : null;
+
             $ticket = Ticket::query()->create([
                 'reference' => 'TKT-'.Str::ulid(),
                 'requester_id' => $requester->getKey(),
                 'technician_id' => null,
                 'category_id' => $category->getKey(),
+                'asset_id' => $asset?->getKey(),
                 'title' => $attributes['title'],
                 'description' => $attributes['description'],
                 'priority' => $attributes['priority'] ?? 'normal',
@@ -60,7 +64,8 @@ class TicketService
                 'actor_id' => $requester->getKey(),
                 'type' => 'created',
                 'occurred_at' => now(),
-                'metadata' => ['status' => $ticket->status, 'priority' => $ticket->priority, 'category_id' => $category->getKey()],
+                'metadata' => ['status' => $ticket->status, 'priority' => $ticket->priority, 'category_id' => $category->getKey(),
+                    ...($asset === null ? [] : ['asset_id' => $asset->getKey()])],
             ]);
 
             return $ticket;

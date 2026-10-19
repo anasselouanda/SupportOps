@@ -192,3 +192,28 @@ La note nullable et `ticket_comments` proviennent de deux migrations additives, 
 Les routes protégées `/tickets`, `/tickets/new` et `/tickets/:ticketId` utilisent `frontend/src/api/tickets.js`, qui réutilise le client Axios partagé et les cookies Sanctum. Les filtres `search`, `status`, `priority`, `page` et `per_page` sont conservés dans l’URL de la liste. Les requêtes de lecture obsolètes sont annulées ou ignorées.
 
 L’API ne renvoie pas de capacités d’action : leur affichage est centralisé dans `ticketCapabilities`, tandis que Laravel garde le contrôle d’autorisation définitif. Les dates UTC sont affichées en `Africa/Casablanca`. Chaque écriture prépare le cookie CSRF, attend la confirmation serveur, puis recharge le ticket et ses activités. Un résultat réseau incertain ne déclenche aucune reprise automatique ; le détail impose une actualisation avant une nouvelle écriture. Une erreur 403 ordinaire conserve la session ; 401 et désactivation réutilisent le comportement existant d’AuthProvider. Une erreur 419 demande une reconnexion, sans rejouer l’écriture.
+# Module matériel — API v1
+
+Toutes les routes ci-dessous utilisent la session Sanctum et le contrôle d'activation existants. Aucun token navigateur ni endpoint DELETE. Détails du schéma, matrice des droits et transitions : [assets-workflow.md](assets-workflow.md).
+
+| Méthode | Route | Corps / paramètres |
+| --- | --- | --- |
+| GET | `/api/v1/assets` | search, type, status, page, per_page, sort, direction |
+| POST | `/api/v1/assets` | inventory_code, type, brand, model ; serial_number et purchase_date facultatifs |
+| GET | `/api/v1/assets/{asset}` | Fiche autorisée, 404 hors périmètre |
+| PATCH | `/api/v1/assets/{asset}` | Au moins une métadonnée ; aucun état ni bénéficiaire |
+| PATCH | `/api/v1/assets/{asset}/assignment` | `user_id` entier actif ou null pour restitution |
+| PATCH | `/api/v1/assets/{asset}/status` | `status` contrôlé |
+| GET | `/api/v1/assets/{asset}/assignments` | Historique admin ; page/per_page |
+| GET | `/api/v1/assets/recipients` | Admin ; utilisateurs actifs ; search sur nom/e-mail, page/per_page ; réponse id/name uniquement |
+| GET | `/api/v1/ticket-assets` | Options limitées de création de ticket ; filtres/pagination identiques à l'inventaire ; admin tous, non-admin affectations à lui |
+
+Les collections conservent l'enveloppe Laravel `data`, `links`, `meta`. Pagination 15 par défaut, 100 maximum. `sort` : inventory_code, type, brand, model, status, created_at ou id ; `direction` asc/desc ; défaut created_at desc puis id desc. La recherche littérale échappe les caractères LIKE sur code, marque, modèle et série. Les paramètres inconnus/invalides reçoivent 422 ; ils ne peuvent étendre le périmètre.
+
+Création 201, autres succès 200 avec `data`. Code inventaire canonique majuscule, 50 caractères maximum, lettres ASCII/chiffres/point/tiret/underscore ; type token minuscule de 50 caractères maximum ; marque et modèle obligatoires 100 ; série nullable 100 ; date d'achat nullable YYYY-MM-DD. L'état initial est toujours available. Les doublons de code reçoivent 422 y compris en cas de conflit sur l'index unique.
+
+Fiche admin/employé : `id, inventory_code, type, brand, model, serial_number, status, purchase_date, created_at, updated_at, current_assignment`. Affectation courante : null ou `{id,user:{id,name},started_at}`. Technicien : uniquement `id, inventory_code, type, brand, model, serial_number, status`. Aucun tableau de tickets, email ou historique des bénéficiaires. Historique admin : `{id,asset_id,user:{id,name},assigned_by:{id,name},started_at,ended_at}`.
+
+Les API tickets existantes acceptent en supplément `asset_id` nullable : création selon les droits de sélection, correction par administrateur sur ticket non clos. Clé omise = association inchangée ; null = retrait explicite. La réponse ticket ajoute `asset_id`, `asset` (résumé de sept champs utiles sans bénéficiaire) et `asset_can_view` (droit de lien vers fiche complète). Un transfert/retrait ne réécrit pas l'association. L'historique conserve `asset_changed` avec `before.asset_id` / `after.asset_id`.
+
+401 invité ; 403 action interdite sur ressource visible ou compte désactivé (code `account_disabled` et invalidation de session) ; 404 ressource absente/hors périmètre ; 419 CSRF/session ; 422 validation/règle métier. Les mutations d'affectation sont sérialisées par verrou et index unique : aucune API cliente ne doit rejouer automatiquement une mutation au résultat réseau incertain.

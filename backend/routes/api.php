@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\Admin\TechnicianController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\AssetController;
+use App\Http\Controllers\Api\AssetSelectionController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
@@ -27,6 +29,15 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
 
     Route::prefix('v1')->name('tickets-api.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+        Route::get('/assets/recipients', [AssetSelectionController::class, 'recipients'])->name('assets.recipients');
+        Route::get('/ticket-assets', [AssetSelectionController::class, 'ticketAssets'])->name('assets.ticket-options');
+        Route::get('/assets', [AssetController::class, 'index'])->name('assets.index');
+        Route::post('/assets', [AssetController::class, 'store'])->name('assets.store');
+        Route::get('/assets/{asset}', [AssetController::class, 'show'])->whereNumber('asset')->name('assets.show');
+        Route::patch('/assets/{asset}', [AssetController::class, 'update'])->whereNumber('asset')->name('assets.update');
+        Route::patch('/assets/{asset}/assignment', [AssetController::class, 'assignment'])->whereNumber('asset')->name('assets.assignment');
+        Route::patch('/assets/{asset}/status', [AssetController::class, 'status'])->whereNumber('asset')->name('assets.status');
+        Route::get('/assets/{asset}/assignments', [AssetController::class, 'assignments'])->whereNumber('asset')->name('assets.assignments');
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
         Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');

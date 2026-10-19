@@ -19,7 +19,7 @@ class UpdateTicketRequest extends TicketScopedRequest
         }
 
         return $this->user()->can('update', $this->visibleTicket())
-            && (! $this->exists('priority') || $this->user()->role === User::ROLE_ADMIN);
+            && ((! $this->exists('priority') && ! $this->exists('asset_id')) || $this->user()->role === User::ROLE_ADMIN);
     }
 
     /**
@@ -34,6 +34,7 @@ class UpdateTicketRequest extends TicketScopedRequest
             'description' => ['sometimes', 'required', 'string', 'min:10', 'max:10000'],
             'category_id' => ['sometimes', 'required', 'integer', Rule::exists('categories', 'id')->where('is_active', true)],
             'priority' => ['sometimes', 'required', 'string', Rule::in(Ticket::PRIORITIES)],
+            'asset_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
         ];
     }
 

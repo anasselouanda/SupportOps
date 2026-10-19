@@ -29,6 +29,7 @@ class StoreTicketRequest extends FormRequest
             'description' => ['required', 'string', 'min:10', 'max:10000'],
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('is_active', true)],
             'priority' => ['sometimes', 'string', Rule::in(Ticket::PRIORITIES)],
+            'asset_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
         ];
     }
 

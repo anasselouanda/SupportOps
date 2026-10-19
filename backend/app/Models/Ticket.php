@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['reference', 'requester_id', 'technician_id', 'category_id', 'title', 'description', 'priority', 'status', 'resolved_at', 'closed_at', 'resolution_note'])]
+#[Fillable(['reference', 'requester_id', 'technician_id', 'category_id', 'asset_id', 'title', 'description', 'priority', 'status', 'resolved_at', 'closed_at', 'resolution_note'])]
 class Ticket extends Model
 {
     /** @use HasFactory<TicketFactory> */
@@ -32,6 +32,25 @@ class Ticket extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /** @return BelongsTo<Asset, $this> */
+    public function asset(): BelongsTo
+    {
+        return $this->belongsTo(Asset::class);
+    }
+
+    /** @param Builder<Ticket> $query
+     * @return Builder<Ticket>
+     */
+    public function scopeWithAssetFor(Builder $query, User $viewer): Builder
+    {
+        return $query->with(['asset' => function (BelongsTo $assets) use ($viewer): void {
+            $assets->withExists([
+                'currentAssignment as viewer_is_recipient' => fn (Builder $assignments) => $assignments->where('user_id', $viewer->getKey()),
+                'tickets as viewer_is_technician' => fn (Builder $tickets) => $tickets->where('technician_id', $viewer->getKey()),
+            ]);
+        }]);
     }
 
     /** @return BelongsTo<User, $this> */

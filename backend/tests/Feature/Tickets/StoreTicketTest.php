@@ -57,6 +57,7 @@ class StoreTicketTest extends TestCase
         $this->assertEqualsCanonicalizing([
             'id', 'reference', 'title', 'description', 'priority', 'status', 'category', 'requester',
             'technician', 'created_at', 'updated_at', 'resolved_at', 'closed_at', 'resolution_note',
+            'asset_id', 'asset', 'asset_can_view',
         ], array_keys($response->json('data')));
         $this->assertEqualsCanonicalizing(['id', 'name'], array_keys($response->json('data.requester')));
         $this->assertEqualsCanonicalizing(['id', 'name'], array_keys($response->json('data.category')));

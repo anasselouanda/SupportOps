@@ -19,7 +19,7 @@ class TicketController extends Controller
     public function index(ListTicketsRequest $request): AnonymousResourceCollection
     {
         $filters = $request->validated();
-        $query = Ticket::query()->visibleTo($request->user())->with($this->relations());
+        $query = Ticket::query()->visibleTo($request->user())->with($this->relations())->withAssetFor($request->user());
 
         if (isset($filters['search'])) {
             $search = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $filters['search']).'%';
@@ -43,7 +43,7 @@ class TicketController extends Controller
     public function store(StoreTicketRequest $request, TicketService $service): JsonResponse
     {
         $ticket = $service->create($request->user(), $request->validated());
-        $ticket->load($this->relations());
+        $ticket = Ticket::query()->with($this->relations())->withAssetFor($request->user())->findOrFail($ticket->getKey());
 
         return (new TicketResource($ticket))->response()->setStatusCode(201);
     }
@@ -51,7 +51,7 @@ class TicketController extends Controller
     public function show(Request $request, string $ticket): TicketResource
     {
         $visibleTicket = Ticket::query()->visibleTo($request->user())
-            ->with($this->relations())->findOrFail($ticket);
+            ->with($this->relations())->withAssetFor($request->user())->findOrFail($ticket);
         Gate::authorize('view', $visibleTicket);
 
         return new TicketResource($visibleTicket);
@@ -60,6 +60,6 @@ class TicketController extends Controller
     /** @return array<int, string> */
     private function relations(): array
     {
-        return ['category:id,name,is_active', 'requester:id,name', 'technician:id,name'];
+        return ['category:id,name,is_active', 'requester:id,name', 'technician:id,name', 'asset'];
     }
 }

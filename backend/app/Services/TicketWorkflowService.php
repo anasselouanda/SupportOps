@@ -15,14 +15,14 @@ class TicketWorkflowService
 {
     public function __construct(private TicketMutation $mutation) {}
 
-    /** @param array{title?: string, description?: string, category_id?: int, priority?: string} $attributes */
+    /** @param array{title?: string, description?: string, category_id?: int, priority?: string, asset_id?: ?int} $attributes */
     public function update(User $actor, int|string $ticketId, array $attributes): Ticket
     {
         return $this->mutation->run($actor, $ticketId, function (Ticket $ticket, User $currentActor) use ($attributes): Ticket {
             Gate::forUser($currentActor)->authorize('update', $ticket);
 
-            if (array_key_exists('priority', $attributes) && $currentActor->role !== User::ROLE_ADMIN) {
-                throw new AuthorizationException('Seul un administrateur peut modifier la priorité.');
+            if ((array_key_exists('priority', $attributes) || array_key_exists('asset_id', $attributes)) && $currentActor->role !== User::ROLE_ADMIN) {
+                throw new AuthorizationException('Seul un administrateur peut modifier la priorité ou le matériel associé.');
             }
 
             if ($ticket->status === 'closed') {
@@ -38,6 +38,7 @@ class TicketWorkflowService
                 'description' => ['sometimes', 'required', 'string', 'min:10', 'max:10000'],
                 'category_id' => ['sometimes', 'required', 'integer'],
                 'priority' => ['sometimes', 'required', 'string', Rule::in(Ticket::PRIORITIES)],
+                'asset_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             ];
             $unknownFields = array_diff(array_keys($attributes), array_keys($rules));
 
@@ -64,6 +65,14 @@ class TicketWorkflowService
             $before = [];
             $after = [];
 
+            if (array_key_exists('asset_id', $attributes)) {
+                $attributes['asset_id'] = app(TicketAssetService::class)->resolve($currentActor,
+                    $attributes['asset_id'] === null ? null : (int) $attributes['asset_id'])?->getKey();
+            }
+
+            $previousAssetId = $ticket->asset_id;
+            $assetChanged = array_key_exists('asset_id', $attributes) && $previousAssetId !== $attributes['asset_id'];
+
             foreach (['title', 'description', 'category_id'] as $field) {
                 if (array_key_exists($field, $attributes) && (string) $ticket->{$field} !== (string) $attributes[$field]) {
                     $before[$field] = $ticket->{$field};
@@ -74,11 +83,15 @@ class TicketWorkflowService
             $priorityChanged = array_key_exists('priority', $attributes) && $ticket->priority !== $attributes['priority'];
             $previousPriority = $ticket->priority;
 
-            if ($after === [] && ! $priorityChanged) {
+            if ($after === [] && ! $priorityChanged && ! $assetChanged) {
                 return $ticket;
             }
 
             $ticket->fill($after);
+
+            if ($assetChanged) {
+                $ticket->asset_id = $attributes['asset_id'];
+            }
 
             if ($priorityChanged) {
                 $ticket->priority = $attributes['priority'];
@@ -92,6 +105,10 @@ class TicketWorkflowService
 
             if ($priorityChanged) {
                 $this->mutation->record($ticket, $currentActor, 'priority_changed', ['priority' => $previousPriority], ['priority' => $ticket->priority]);
+            }
+
+            if ($assetChanged) {
+                $this->mutation->record($ticket, $currentActor, 'asset_changed', ['asset_id' => $previousAssetId], ['asset_id' => $ticket->asset_id]);
             }
 
             return $ticket;
